@@ -1,6 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VXJN9XMQQ4"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-VXJN9XMQQ4');
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="description" content="Measure green canopy cover and monitor crops in the field using the Canopeo algorithm.">
@@ -316,7 +325,7 @@
         .color-options {
             display: flex;
             flex-wrap: wrap;
-            gap: 0.75rem;
+            gap: 0.5rem;
             margin-top: 0.5rem;
         }
         
@@ -1629,7 +1638,7 @@
 
                 <div class="form-group">
                     <div class="control-label">
-                        <span>Ratio (R/G &amp; B/G)</span>
+                        <span>Ratio (0.95-0.98 for most conditions)</span>
                         <span class="control-value" id="rgRatioValue">0.95</span>
                     </div>
                     <input type="range" id="rgRatioSlider" min="0.85" max="1.15" step="0.01" value="0.95">
@@ -2075,6 +2084,18 @@
                 'Dough stage / ripening',         // 8
                 'Senescence / harvest ripe'       // 9
             ],
+            'wheat': [
+                'Germination',                   // 0
+                'Seedling (1–3 leaves)',          // 1
+                'Tillering',                      // 2
+                'Stem elongation',                // 3
+                'Booting (flag leaf sheath)',     // 4
+                'Heading / ear emergence',        // 5
+                'Flowering / anthesis',           // 6
+                'Milky grain',                    // 7
+                'Dough stage / ripening',         // 8
+                'Senescence / harvest ripe'       // 9
+            ],
             'soybean': [
                 'Germination',                    // 0
                 'Cotyledons / unifoliate leaf',   // 1
@@ -2098,6 +2119,18 @@
                 'R2–R3 — blister / milk',         // 7
                 'R4–R5 — dough / dent',           // 8
                 'R6 — physiological maturity'     // 9
+            ],
+            'cotton': [
+                'Germination / emergence',
+                'VC–V2 (2 true leaves)',
+                'V3–V5 (early vegetative)',
+                'First square (pinhead size)',
+                'Mid-squaring (candle stage)',
+                'R1 (first white flower)',
+                'Peak bloom (white/red flowers)',
+                'Early boll (fiber elongation)',
+                'First cracked boll (open bolls)',
+                'Physiological maturity'
             ],
             'sorghum': [
                 'Germination / emergence',        // 0
