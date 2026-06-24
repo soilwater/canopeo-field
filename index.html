@@ -1,0 +1,3796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#ffffff">
+    <title>Canopeo-Field</title>
+    <link rel="manifest" href="/app/manifest.json">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+        
+        :root {
+            --text: #1a1a1a;
+            --text-light: #666;
+            --border: #e0e0e0;
+            --bg: #fafafa;
+            --accent: #4caf50;
+            --accent-dark: #45a049;
+            --error: #f44336;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #fff;
+            color: var(--text);
+            line-height: 1.5;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        .app {
+            max-width: 480px;
+            margin: 0 auto;
+            height: 100dvh;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            padding-top: env(safe-area-inset-top);
+        }
+        
+        .header {
+            padding: calc(env(safe-area-inset-top) + 1rem) 1.25rem 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .logo {
+            width: 32px;
+            height: 32px;
+        }
+        
+        .logo svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .logo-text {
+            font-size: 1.125rem;
+            font-weight: 600;
+            letter-spacing: -0.01em;
+        }
+        
+        .gps-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.75rem;
+            color: var(--text-light);
+            padding: 0.2rem 0.2rem;
+            border-radius: 4px;
+            background: var(--bg);
+        }
+        
+        .gps-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--error);
+            transition: background 0.3s;
+        }
+        
+        .gps-dot.active {
+            background: var(--accent);
+        }
+        
+        .screen-indicator {
+            display: flex;
+            gap: 0.375rem;
+            padding-top: 0.5rem;
+        }
+        
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border);
+            transition: all 0.3s;
+        }
+        
+        .dot.active {
+            background: var(--text);
+            width: 20px;
+            border-radius: 3px;
+        }
+        
+        .swiper {
+            flex: 1;
+            width: 100%;
+        }
+        
+        .swiper-slide {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* CAPTURE SCREEN */
+        .capture-screen {
+            flex: 1;
+            padding: 2rem 1.25rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            position: relative;
+        }
+        
+        .capture-icon {
+            width: 100px;
+            height: 100px;
+            border: 2px solid var(--text);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fff;
+            position: relative;
+        }
+        
+        .capture-icon:hover {
+            transform: scale(1.05);
+            border-color: var(--accent);
+        }
+        
+        .capture-icon:active {
+            transform: scale(0.95);
+        }
+        
+        .capture-icon svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--text);
+        }
+        
+        .capture-text {
+            text-align: center;
+        }
+        
+        .capture-text h2 {
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        
+        .capture-text p {
+            color: var(--text-light);
+            font-size: 0.9375rem;
+            font-weight: 300;
+        }
+        
+        #captureInput {
+            display: none;
+        }
+
+        .btn-small {
+            padding: 0.5rem 0.875rem;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 6px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .btn-small:hover {
+            border-color: var(--accent);
+        }
+
+        .btn-small:active {
+            transform: scale(0.98);
+        }
+        
+        .image-container {
+            position: relative;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            cursor: pointer;
+        }
+        
+        #originalImage {
+            width: 100%;
+            display: block;
+        }
+        
+        #classifiedCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .view-toggle {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--border);
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .view-toggle:hover {
+            background: #fff;
+        }
+        
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.8125rem;
+        }
+        
+        .control-value {
+            color: var(--accent);
+            font-weight: 500;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--border);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+        }
+        
+        .color-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-option.active {
+            border-color: var(--text);
+        }
+        
+        .color-option.green {
+            background: rgb(57, 255, 20);
+        }
+        
+        .color-option.orange {
+            background: rgb(255, 111, 0);
+        }
+        
+        .color-option.pink {
+            background: rgb(255, 20, 147);
+        }
+        
+        .color-option.blue {
+            background: rgb(0, 191, 255);
+        }
+        
+        .color-option.yellow {
+            background: rgb(255, 255, 0);
+        }
+        
+        .color-option.purple {
+            background: rgb(186, 85, 255);
+        }
+        
+        .color-option.white {
+            background: rgb(255, 255, 255);
+            border: 2px solid var(--border);
+        }
+        
+        .color-option.white.active {
+            border-color: var(--text);
+        }
+
+        .color-option.original {
+            background: linear-gradient(135deg, #ccc 25%, #fff 25%, #fff 50%, #ccc 50%, #ccc 75%, #fff 75%);
+            background-size: 8px 8px;
+            border: 2px solid var(--border);
+        }
+        .color-option.original.active {
+            border-color: var(--text);
+        }
+        
+        .stats-display {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            margin: 1.25rem;
+        }
+        
+        .stats-percentage {
+            font-size: 3rem;
+            font-weight: 600;
+            color: var(--accent);
+            line-height: 1;
+        }
+        
+        .stats-label {
+            font-size: 0.8125rem;
+            color: var(--text-light);
+            margin-top: 0.5rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.8125rem;
+            color: var(--text-light);
+            margin-bottom: 0.375rem;
+            font-weight: 500;
+        }
+
+        /* Subtle top divider for grouped observation fields */
+        .form-group-divided {
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+            margin-top: 0.25rem;
+        }
+        
+        .form-value {
+            font-size: 0.875rem;
+            color: var(--text);
+            padding: 0.625rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 0.625rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            background: #fff;
+            color: var(--text);
+            transition: border-color 0.2s;
+        }
+        
+        .form-input:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .char-counter {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            text-align: right;
+            margin-top: 0.1rem;
+        }
+        
+        .keywords-container {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem;
+            background: #fff;
+            min-height: 80px;
+        }
+        
+        .selected-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .keyword-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            background: var(--accent);
+            color: white;
+            padding: 0.375rem 0.75rem;
+            border-radius: 14px;
+            font-size: 0.875rem;
+            cursor: default;
+        }
+        
+        .keyword-pill button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            /* Large tap target — padding adds invisible hit area around the × */
+            padding: 0.25rem 0.125rem 0.25rem 0.25rem;
+            margin: -0.25rem -0.125rem -0.25rem -0.25rem;
+            font-size: 1rem;
+            line-height: 1;
+            opacity: 0.8;
+        }
+        
+        .keyword-pill button:hover {
+            opacity: 1;
+        }
+        
+        .keyword-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            padding: 0.25rem 0;
+        }
+        
+        .suggested-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+        }
+        
+        .suggested-keyword {
+            background: var(--bg);
+            color: var(--text);
+            padding: 0.375rem 0.625rem;
+            border-radius: 14px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Hover only on real pointer devices — prevents sticky green on mobile tap */
+        @media (hover: hover) {
+            .suggested-keyword:hover {
+                background: var(--accent);
+                color: white;
+                border-color: var(--accent);
+            }
+            .suggested-keyword .chip-del:hover { opacity: 1; color: var(--error); }
+        }
+        /* Touch feedback via :active — clears immediately on release */
+        .suggested-keyword:active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        .suggested-keyword .chip-del {
+            background: none; border: none; cursor: pointer;
+            font-size: 1.25rem; line-height: 1; color: var(--text);
+            opacity: 0.75;
+            /* Large tap target — extends hit area without changing visual size */
+            padding: 0.3rem 0.1rem 0.3rem 0.3rem;
+            margin: -0.3rem -0.1rem -0.3rem 0;
+            border-left: 1px solid var(--text);
+        }
+        
+        .keyword-counter {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 0.6875rem;
+            color: var(--text-light);
+            font-weight: 500;
+            z-index: 5;
+        }
+        
+        .keyword-counter.limit-reached {
+            color: var(--error);
+        }
+        
+        /* GALLERY SCREEN */
+        .gallery-screen {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .gallery-header {
+            padding: 1rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Keep map header buttons compact on small screens */
+        @media (max-width: 420px) {
+            .header-actions .btn-small {
+                padding: 0.45rem 0.6rem;
+                font-size: 0.75rem;
+            }
+        }
+
+        
+        .gallery-title {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        
+        .count-badge {
+            font-size: 0.8125rem;
+            color: var(--text-light);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .gallery-actions {
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            overflow-x: auto;
+        }
+        
+        .gallery-actions::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .cards-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1.25rem;
+        }
+        
+        .card {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            background: #fff;
+        }
+        
+        .card:last-child {
+            margin-bottom: 0;
+        }
+        
+        .card-image-wrapper {
+            position: relative;
+            cursor: pointer;
+            background: var(--bg);
+        }
+        
+        .card-image {
+            width: 100%;
+            display: block;
+        }
+        
+        .card-overlay-badge {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--border);
+            padding: 0.25rem 0.625rem;
+            border-radius: 4px;
+            font-size: 0.6875rem;
+            font-weight: 500;
+        }
+        
+        .card-content {
+            padding: 1rem;
+        }
+        
+        .card-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+        
+        .card-percentage {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        
+        .card-meta {
+            font-size: 0.8125rem;
+            color: var(--text-light);
+            margin-bottom: 0.25rem;
+        }
+        
+        .card-comment {
+            font-size: 0.8125rem;
+            color: var(--text);
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+            margin-top: 0.75rem;
+            line-height: 1.4;
+        }
+        
+        .card-keywords {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+            margin-top: 0.75rem;
+        }
+        
+        .keyword-tag {
+            background: var(--bg);
+            color: var(--text);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.6875rem;
+            border: 1px solid var(--border);
+        }
+        
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+            margin-top: 0.75rem;
+        }
+        
+        .card-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .card-btn:hover {
+            border-color: var(--accent);
+        }
+        
+        .card-btn:active {
+            transform: scale(0.98);
+        }
+        
+        .card-btn.delete {
+            color: var(--error);
+            border-color: var(--error);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.25rem;
+            color: var(--text-light);
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .btn:hover {
+            border-color: var(--accent);
+        }
+        
+        .btn:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        
+        .btn-primary:hover {
+            background: var(--accent-dark);
+            border-color: var(--accent-dark);
+        }
+        
+        /* MODAL */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #fff;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-title {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-body {
+            padding: 1.25rem;
+        }
+        
+        /* Modal-specific styles */
+        .modal .image-container {
+            position: relative;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            background: var(--bg);
+            cursor: pointer;
+        }
+        
+        .modal #originalImage {
+            width: 100%;
+            display: block;
+        }
+        
+        .modal #classifiedCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .modal .view-toggle {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid var(--border);
+            padding: 0.375rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'JetBrains Mono', monospace;
+            z-index: 5;
+        }
+        
+        .modal .view-toggle:hover {
+            background: #fff;
+        }
+
+        .classify-tap-hint {
+            position: absolute;
+            bottom: 0.75rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid var(--border);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.6875rem;
+            font-weight: 500;
+            pointer-events: none;
+            white-space: nowrap;
+            transition: opacity 0.4s;
+        }
+        .classify-tap-hint.hidden { opacity: 0; }
+        
+        /* MAP */
+        #map {
+            background: var(--bg);
+        }
+        
+        .leaflet-popup-content-wrapper {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .map-popup-image {
+            width: 100%;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .map-popup-percentage {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.25rem;
+        }
+        
+        .map-popup-meta {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            margin-bottom: 0.25rem;
+        }
+        
+        .modal .keywords-container {
+            position: relative;
+        }
+        
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--text);
+            color: #fff;
+            padding: 0.75rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            z-index: 2000;
+            animation: slideUp 0.3s ease;
+        }
+        
+        .toast.success {
+            background: var(--accent);
+        }
+        
+        .toast.error {
+            background: var(--error);
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        /* ── GUIDELINES BUTTON ────────────────────────────── */
+        .guidelines-btn {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.35rem 0.625rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .guidelines-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+        .guide-section {
+            margin-bottom: 1.125rem;
+        }
+        .guide-section:last-child { margin-bottom: 0; }
+        .guide-section-title {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.375rem;
+        }
+        .guide-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .guide-list li {
+            font-size: 0.8125rem;
+            color: var(--text-light);
+            line-height: 1.45;
+            padding-left: 1rem;
+            position: relative;
+        }
+        .guide-list li::before {
+            content: "–";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        /* ── TERMS & CONDITIONS MODAL ─────────────────────────────── */
+        #tc-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: rgba(0,0,0,0.72);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        #tc-overlay.hidden { display: none; }
+        .tc-box {
+            background: #fff;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.28);
+        }
+        .tc-header {
+            padding: 1.25rem 1.25rem 0.75rem;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .tc-header h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .tc-version {
+            font-size: 0.7rem;
+            color: var(--text-light);
+        }
+        .tc-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.25rem;
+            font-size: 0.8125rem;
+            line-height: 1.6;
+            color: var(--text);
+        }
+        .tc-body h3 {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            margin: 1rem 0 0.25rem;
+        }
+        .tc-body h3:first-child { margin-top: 0; }
+        .tc-body p { margin-bottom: 0.625rem; }
+        .tc-body ul { margin: 0.25rem 0 0.625rem 1.25rem; }
+        .tc-body li { margin-bottom: 0.25rem; }
+        .tc-footer {
+            padding: 0.875rem 1.25rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.75rem;
+            flex-shrink: 0;
+            background: var(--bg);
+        }
+        .tc-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: #fff;
+            transition: all 0.2s;
+        }
+        .tc-btn-accept {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .tc-btn-accept:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+        .tc-btn-decline:hover { border-color: #f44336; color: #f44336; }
+        .tc-declined {
+            text-align: center;
+            padding: 2rem 1.5rem;
+            color: var(--text-light);
+        }
+        .tc-declined h2 { font-size: 1rem; color: var(--text); margin-bottom: 0.75rem; }
+        .tc-declined p  { font-size: 0.8125rem; line-height: 1.6; }
+
+        /* ── SOIL MOISTURE SEGMENTED BUTTONS ─────────────────── */
+        .moisture-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .moisture-btn-row {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 0.25rem;
+        }
+        .moisture-btn {
+            padding: 0.5rem 0;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.0rem;
+            font-weight: 600;
+            color: #fff;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.1s, border-color 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .moisture-btn:active { transform: scale(0.93); }
+        .moisture-btn.selected { border-color: var(--text); }
+        .moisture-btn[data-level="0"] { background: #c62828; }
+        .moisture-btn[data-level="1"] { background: #ef6c00; }
+        .moisture-btn[data-level="2"] { background: #ffb300; color: #333; }
+        .moisture-btn[data-level="3"] { background: #66bb6a; }
+        .moisture-btn[data-level="4"] { background: #2e7d32; }
+        .moisture-btn[data-level="5"] { background: #1565c0; }
+        .moisture-desc {
+            font-size: 0.75rem;
+            color: var(--text);
+            line-height: 1.45;
+            min-height: 1.2rem;
+        }
+        .moisture-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+        .moisture-clear-btn {
+            font-size: 0.6875rem;
+            color: var(--text-light);
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.15rem 0.5rem;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+        .moisture-clear-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* ── CROP + BBCH ───────────────────────────────────────── */
+        .crop-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.375rem;
+        }
+        .crop-input-row {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+        .crop-input {
+            flex: 1;
+            padding: 0.45rem 0.625rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius, 6px);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem;
+            background: var(--bg);
+            color: var(--text);
+            transition: border-color .15s;
+        }
+        .crop-input:focus { outline: none; border-color: var(--accent); }
+        .crop-selected-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            background: var(--accent);
+            color: #fff;
+            padding: 0.375rem 0.75rem;
+            border-radius: 14px;
+            font-size: 0.875rem;
+        }
+        .crop-selected-tag button {
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            /* Large tap target — padding adds invisible hit area around the × */
+            padding: 0.25rem 0.125rem 0.25rem 0.25rem;
+            margin: -0.25rem -0.125rem -0.25rem -0.25rem;
+            font-size: 1rem;
+            line-height: 1;
+            opacity: 0.8;
+        }
+        .crop-selected-tag button:hover { opacity: 1; }
+        .crop-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+            margin-top: 0.25rem;
+        }
+        /* BBCH buttons — 10 per row, each colour-coded */
+        .bbch-btn-row {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 0.2rem;
+        }
+        .bbch-btn {
+            padding: 0.45rem 0;
+            border: 2px solid transparent;
+            border-radius: 5px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.0rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.1s, border-color 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .bbch-btn:active { transform: scale(0.93); }
+        .bbch-btn.selected { border-color: var(--text); }
+        /* Colour progression: cream→light green→deep green→amber→brown */
+        .bbch-btn[data-stage="0"]  { background:#f5f0e8; color:#333; }
+        .bbch-btn[data-stage="1"]  { background:#dcedc8; color:#333; }
+        .bbch-btn[data-stage="2"]  { background:#aed581; color:#333; }
+        .bbch-btn[data-stage="3"]  { background:#7cb342; color:#fff; }
+        .bbch-btn[data-stage="4"]  { background:#558b2f; color:#fff; }
+        .bbch-btn[data-stage="5"]  { background:#33691e; color:#fff; }
+        .bbch-btn[data-stage="6"]  { background:#9ccc65; color:#333; }
+        .bbch-btn[data-stage="7"]  { background:#d4a017; color:#333; }
+        .bbch-btn[data-stage="8"]  { background:#a0785a; color:#fff; }
+        .bbch-btn[data-stage="9"]  { background:#6d4c41; color:#fff; }
+        .bbch-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-top: 0.375rem;
+        }
+        .bbch-desc {
+            font-size: 0.75rem;
+            color: var(--text);
+            line-height: 1.45;
+            min-height: 1.2rem;
+        }
+
+        /* ── QR SCANNER ────────────────────────────────────────── */
+        #qr-modal-overlay {
+            position: fixed; inset: 0; z-index: 2000;
+            background: rgba(0,0,0,0.85);
+            display: none; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 1rem; padding: 1rem;
+        }
+        #qr-modal-overlay.active { display: flex; }
+        #qr-video-wrap {
+            position: relative;
+            width: 100%; max-width: 320px;
+            border-radius: 10px; overflow: hidden;
+            border: 2px solid var(--accent);
+        }
+        #qr-video {
+            width: 100%; display: block;
+            background: #000;
+        }
+        .qr-aim {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            pointer-events: none;
+        }
+        .qr-aim::before {
+            content: '';
+            width: 55%; height: 55%;
+            border: 2px solid var(--accent);
+            border-radius: 6px;
+            box-shadow: 0 0 0 2000px rgba(0,0,0,0.35);
+        }
+        #qr-status {
+            color: #fff; font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8125rem; text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Terms & Conditions overlay (shown before app initialises) -->
+    <div id="tc-overlay" class="hidden">
+      <div class="tc-box">
+        <div class="tc-header">
+          <h2>Canopeo-Field — Terms of Use</h2>
+          <div class="tc-version" id="tc-version-lbl"></div>
+        </div>
+        <div class="tc-body">
+          <h3>1. About This Software</h3>
+          <p>Canopeo-Field is an open-source, non-commercial crop monitoring tool. Use of this application is governed by the <strong>PolyForm Noncommercial License 1.0.0</strong> and the additional terms below.</p>
+
+          <h3>2. Permitted Use</h3>
+          <p>You may use Canopeo-Field solely for:</p>
+          <ul>
+            <li>Personal, educational, or research purposes</li>
+            <li>Non-commercial scientific data collection</li>
+            <li>Evaluation and testing</li>
+          </ul>
+          <p>Use by or on behalf of a for-profit entity in furtherance of commercial activities is not permitted without a separate written agreement.</p>
+          <p>Images submitted to a Canopeo-Field server must be relevant to crop and field observation. Submission of inappropriate, offensive, or unrelated content may result in the removal of the content, revocation of your upload token, and deactivation of your account.</p>
+          
+          <h3>3. Data You Submit</h3>
+          <p>Data stored only on your device remains entirely under your control. Uploading is optional — the app works fully offline.</p>
+          <p>Images and observations you submit to a Canopeo-Field server will be visible on the public dashboard and licensed under <strong>CC BY-NC 4.0</strong> (Attribution, Non-Commercial). Uploaded data may be retained indefinitely for research and educational purposes, even if you later request account deletion. By submitting data you confirm you have the right to share it and grant the server operator a non-exclusive licence to store, display, and use it for research and educational purposes. Only upload images from fields where you have permission to share data publicly.</p>
+          
+          <h3>4. No Warranty</h3>
+          <p>Canopeo-Field is provided <strong>"as is"</strong>, without warranty of any kind. The developers make no representations about the accuracy of canopy-cover estimates or any other outputs. Do not rely on Canopeo-Field outputs for decisions with significant consequences without independent verification.</p>
+
+          <h3>5. Limitation of Liability</h3>
+          <p>To the maximum extent permitted by law, the developers of Canopeo-Field shall not be liable for any direct, indirect, incidental, or consequential damages arising from your use of this application.</p>
+
+          <h3>6. Attribution</h3>
+          <p>Observations exported or published from Canopeo-Field should credit the Canopeo-Field project and the original data collector where feasible.</p>
+
+          <h3>7. Updates to These Terms</h3>
+          <p>These terms may be updated from time to time. Continued use of Canopeo-Field after a version change constitutes acceptance of the revised terms. If you decline, you will not be able to use the application.</p>
+
+          <h3>8. Contact</h3>
+          <p>Questions about these terms should be directed to the server administrator of the Canopeo-Field instance you are using.</p>
+        </div>
+        <div class="tc-footer">
+          <button class="tc-btn tc-btn-decline" onclick="tcDecline()">Decline</button>
+          <button class="tc-btn tc-btn-accept"  onclick="tcAccept()">Accept &amp; Continue</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app">
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo">
+                    <img src="/icons/icon_256.png" width="32" height="32" alt="Canopeo-Field Logo">
+                </div>
+                <div class="logo-text">Canopeo-Field</div>
+                <span style="font-size:0.65rem;color:var(--text-light);opacity:0.6;">v1</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div class="gps-indicator">
+                    <div class="gps-dot" id="gpsIndicator"></div>
+                    <span id="gpsText">GPS</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="screen-indicator" style="padding: 0.5rem 1.25rem 0;">
+            <div class="dot active" data-screen="0"></div>
+            <div class="dot" data-screen="1"></div>
+            <div class="dot" data-screen="2"></div>
+        </div>
+        
+        <div class="swiper">
+            <div class="swiper-wrapper">
+
+                <!-- Screen 1: Capture -->
+                <div class="swiper-slide" data-screen="capture">
+                    <div class="capture-screen">
+                        <div class="capture-icon" id="captureIcon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                                <circle cx="12" cy="13" r="4"/>
+                            </svg>
+                            <input type="file" id="captureInput" accept="image/*" capture="environment">
+                        </div>
+                        
+                        
+                        <button class="guidelines-btn" onclick="document.getElementById('guidelinesModal').classList.add('active')">
+                            &#8594; Guidelines
+                        </button>
+                        <div class="capture-text">
+                            <h2>Capture Image</h2>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Screen 2: Gallery -->
+                <div class="swiper-slide" data-screen="gallery">
+                    <div class="gallery-screen">
+                        <div class="gallery-header">
+                            <div class="gallery-title">Gallery</div>
+                            <div style="display:flex;align-items:center;gap:0.5rem;">
+                                <div class="count-badge">Cards:</div>
+                                <div class="count-badge" id="cardCount">0</div>
+                                <div class="count-badge" id="storageUsage" style="display:none;"></div>
+                                <button id="settingsGearBtn" onclick="openSettingsModal()" title="Upload settings" style="background:none;border:none;cursor:pointer;padding:0.2rem;color:var(--text-light);display:flex;align-items:center;">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="gallery-actions">
+                            <button class="btn-small" id="downloadAllBtn">⬇ All</button>
+                            <button class="btn-small" id="exportCsvBtn">📄 CSV</button>
+                            <button class="btn-small" id="exportJsonBtn">🔧 JSON</button>
+                            <button class="btn-small" id="uploadAllBtn" style="display:none;">⬆ Upload</button>
+                            <button class="btn-small" id="clearAllBtn">🗑 Clear</button>
+                        </div>
+
+                        
+                        <div class="cards-container" id="cardsContainer">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📸</div>
+                                <div>No captures yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Screen 3: Map -->
+                <div class="swiper-slide" data-screen="map">
+                    <div class="gallery-screen">
+                        <div class="gallery-header">
+                            <div class="gallery-title">Map</div>
+                            <div class="header-actions">
+                                <input id="geojsonInput" type="file" accept=".geojson,application/geo+json,application/json" style="display:none" />
+                                <button class="btn-small" id="btnUploadGeojson">Upload field boundary</button>
+                                <button class="btn-small" id="btnClearGeojson" title="Remove boundary layer">Clear boundary</button>
+                                <div class="count-badge" id="mapCardCount">0</div>
+                            </div>
+                        </div>
+                        
+                        <div id="map" class="no-swipe" style="flex: 1; width: 100%; max-height: 68dvh; max-height: 68vh;"></div>
+                        <div style="height:2.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--border);"><span style="width:2rem;height:3px;border-radius:2px;background:var(--border);display:block;"></span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Modal -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Edit Card</div>
+                <button class="modal-close" id="closeEditModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Crop</label>
+                    <div class="crop-wrap" id="editCropWrap">
+                        <div class="crop-input-row">
+                            <div id="editCropSelectedTag"></div>
+                            <input type="text" class="crop-input" id="editCropInput" placeholder="Type crop name and press Enter">
+                        </div>
+                        <div class="crop-suggestions" id="editCropSuggestions"></div>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Crop Stage</label>
+                    <div id="editBbchWrap">
+                        <div class="bbch-btn-row">
+                            <button type="button" class="bbch-btn" data-stage="0" onclick="onEditBbchInput(0)">0</button>
+                            <button type="button" class="bbch-btn" data-stage="1" onclick="onEditBbchInput(1)">1</button>
+                            <button type="button" class="bbch-btn" data-stage="2" onclick="onEditBbchInput(2)">2</button>
+                            <button type="button" class="bbch-btn" data-stage="3" onclick="onEditBbchInput(3)">3</button>
+                            <button type="button" class="bbch-btn" data-stage="4" onclick="onEditBbchInput(4)">4</button>
+                            <button type="button" class="bbch-btn" data-stage="5" onclick="onEditBbchInput(5)">5</button>
+                            <button type="button" class="bbch-btn" data-stage="6" onclick="onEditBbchInput(6)">6</button>
+                            <button type="button" class="bbch-btn" data-stage="7" onclick="onEditBbchInput(7)">7</button>
+                            <button type="button" class="bbch-btn" data-stage="8" onclick="onEditBbchInput(8)">8</button>
+                            <button type="button" class="bbch-btn" data-stage="9" onclick="onEditBbchInput(9)">9</button>
+                        </div>
+                        <div class="bbch-footer">
+                            <span class="bbch-desc" id="editBbchValueLabel">Not recorded</span>
+                            <button type="button" class="moisture-clear-btn" onclick="clearEditBbch()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Comments</label>
+                    <textarea class="form-textarea" id="editComments" maxlength="200"></textarea>
+                </div>
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Keywords</label>
+                    <div class="keywords-container">
+                        <div class="keyword-counter" id="editKeywordCounter">0/5</div>
+                        <div class="selected-keywords" id="editSelectedKeywords"></div>
+                        <input type="text" class="keyword-input" id="editKeywordInput" placeholder="Type keyword and press Enter">
+                    </div>
+                    <div class="suggested-keywords" id="editSuggestedKeywords"></div>
+                </div>
+
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Soil Moisture</label>
+                    <div class="moisture-wrap" id="editMoistureWrap">
+                        <div class="moisture-btn-row">
+                            <button type="button" class="moisture-btn" data-level="0" onclick="onEditMoistureInput(0)">0</button>
+                            <button type="button" class="moisture-btn" data-level="1" onclick="onEditMoistureInput(1)">1</button>
+                            <button type="button" class="moisture-btn" data-level="2" onclick="onEditMoistureInput(2)">2</button>
+                            <button type="button" class="moisture-btn" data-level="3" onclick="onEditMoistureInput(3)">3</button>
+                            <button type="button" class="moisture-btn" data-level="4" onclick="onEditMoistureInput(4)">4</button>
+                            <button type="button" class="moisture-btn" data-level="5" onclick="onEditMoistureInput(5)">5</button>
+                        </div>
+                        <div class="moisture-footer">
+                            <span class="moisture-desc" id="editMoistureValueLabel">Not recorded</span>
+                            <button type="button" class="moisture-clear-btn" onclick="clearEditMoisture()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                    <button class="btn" id="cancelEdit">Cancel</button>
+                    <button class="btn btn-primary" id="saveEdit">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Guidelines Modal -->
+    <div class="modal" id="guidelinesModal">
+        <div class="modal-content" style="max-width:460px; max-height:88vh;">
+            <div class="modal-header">
+                <div class="modal-title">Guidelines</div>
+                <button class="modal-close" onclick="document.getElementById('guidelinesModal').classList.remove('active')">×</button>
+            </div>
+            <div class="modal-body" style="overflow-y:auto; max-height:calc(88vh - 64px);">
+
+                <div class="guide-section">
+                    <div class="guide-section-title">📷 Camera position</div>
+                    <ul class="guide-list">
+                        <li>Hold the phone parallel to the ground, and frame the crop canopypointing straight down</li>
+                        <li>Keep it between waist and shoulder height (~0.8–1.5 m)</li>
+                        <li>Avoid tilting — even a small angle reduces accuracy</li>
+                    </ul>
+                </div>
+
+                <div class="guide-section">
+                    <div class="guide-section-title">🚫 What to avoid</div>
+                    <ul class="guide-list">
+                        <li>Blurry images — hold still before tapping</li>
+                        <li>Feet, tools, or other objects in the frame</li>
+                        <li>Heavy shadows cast by yourself or equipment</li>
+                        <li>Avoid low sun angles (early morning, late afternoon)</li>
+                    </ul>
+                </div>
+
+                <div class="guide-section">
+                    <div class="guide-section-title">📍 Location &amp; data</div>
+                    <ul class="guide-list">
+                        <li>GPS coordinates and timestamp are recorded automatically</li>
+                        <li>Wait for the GPS indicator to turn green before capturing</li>
+                        <li>Images are saved locally on your device — upload is optional</li>
+                    </ul>
+                </div>
+
+                <div class="guide-section">
+                    <div class="guide-section-title">📲 Offline use</div>
+                    <ul class="guide-list">
+                        <li>Canopeo-Field works fully offline once loaded</li>
+                        <li>On iPhone: tap Share → Add to Home Screen</li>
+                        <li>On Android: tap the browser menu → Install app</li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Classification/Metadata Modal -->
+    <div class="modal" id="classifyModal">
+        <div class="modal-content" style="max-width: 500px; max-height: 90vh;">
+            <div class="modal-header">
+                <div class="modal-title">Classify & Save</div>
+                <button class="modal-close" id="closeClassifyModal">×</button>
+            </div>
+            <div class="modal-body" style="max-height: calc(90vh - 80px); overflow-y: auto;">
+                <!-- Image Preview -->
+                <div class="image-container" style="margin-bottom: 1.25rem;">
+                    <img id="originalImage" alt="Original">
+                    <canvas id="classifiedCanvas"></canvas>
+                    <button class="view-toggle" id="viewToggle">Blended</button>
+                    <div class="classify-tap-hint" id="classifyTapHint">tap image to toggle</div>
+                </div>
+                
+                <!-- Controls -->
+                <div class="form-group">
+                    <div class="control-label">
+                        <span>Mask Opacity</span>
+                        <span class="control-value" id="alphaValue">0.70</span>
+                    </div>
+                    <input type="range" id="alphaSlider" min="0" max="1" step="0.05" value="0.70">
+                </div>
+
+                <div class="form-group">
+                    <div class="control-label">
+                        <span>Ratio (R/G &amp; B/G)</span>
+                        <span class="control-value" id="rgRatioValue">0.95</span>
+                    </div>
+                    <input type="range" id="rgRatioSlider" min="0.85" max="1.15" step="0.01" value="0.95">
+                </div>
+                
+                <div class="form-group">
+                    <div class="control-label">
+                        <span>Mask Color</span>
+                    </div>
+                    <div class="color-options">
+                        <div class="color-option green active" data-color="green"></div>
+                        <div class="color-option orange" data-color="orange"></div>
+                        <div class="color-option pink" data-color="pink"></div>
+                        <div class="color-option blue" data-color="blue"></div>
+                        <div class="color-option yellow" data-color="yellow"></div>
+                        <div class="color-option purple" data-color="purple"></div>
+                        <div class="color-option white" data-color="white"></div>
+                        <div class="color-option original" data-color="original" title="Original pixel colors"></div>
+                    </div>
+                </div>
+                
+                <!-- Stats -->
+                <div class="stats-display" style="margin: 1.25rem 0;">
+                    <div class="stats-percentage" id="coveragePercentage">0.0%</div>
+                    <div class="stats-label">Crop Cover</div>
+                </div>
+                
+                <!-- Metadata -->
+                <div class="form-group">
+                    <label class="form-label">Timestamp</label>
+                    <div class="form-value" id="metaTimestamp"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">GPS Coordinates</label>
+                    <div class="form-value" id="metaGPS">Fetching...</div>
+                </div>
+
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Crop</label>
+                    <div class="crop-wrap" id="cropWrap">
+                        <div class="crop-input-row">
+                            <div id="cropSelectedTag"></div>
+                            <input type="text" class="crop-input" id="cropInput" placeholder="Type crop name and press Enter">
+                        </div>
+                        <div class="crop-suggestions" id="cropSuggestions"></div>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Crop Stage</label>
+                    <div id="bbchWrap">
+                        <div class="bbch-btn-row">
+                            <button type="button" class="bbch-btn" data-stage="0" onclick="onBbchInput(0)">0</button>
+                            <button type="button" class="bbch-btn" data-stage="1" onclick="onBbchInput(1)">1</button>
+                            <button type="button" class="bbch-btn" data-stage="2" onclick="onBbchInput(2)">2</button>
+                            <button type="button" class="bbch-btn" data-stage="3" onclick="onBbchInput(3)">3</button>
+                            <button type="button" class="bbch-btn" data-stage="4" onclick="onBbchInput(4)">4</button>
+                            <button type="button" class="bbch-btn" data-stage="5" onclick="onBbchInput(5)">5</button>
+                            <button type="button" class="bbch-btn" data-stage="6" onclick="onBbchInput(6)">6</button>
+                            <button type="button" class="bbch-btn" data-stage="7" onclick="onBbchInput(7)">7</button>
+                            <button type="button" class="bbch-btn" data-stage="8" onclick="onBbchInput(8)">8</button>
+                            <button type="button" class="bbch-btn" data-stage="9" onclick="onBbchInput(9)">9</button>
+                        </div>
+                        <div class="bbch-footer">
+                            <span class="bbch-desc" id="bbchValueLabel">Not recorded</span>
+                            <button type="button" class="moisture-clear-btn" onclick="clearBbch()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Comments</label>
+                    <textarea class="form-textarea" id="metaComments" maxlength="200" placeholder="Add observations..."></textarea>
+                    <div class="char-counter"><span id="charCount">200</span> characters remaining</div>
+                </div>
+                
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Keywords</label>
+                    <div class="keywords-container">
+                        <div class="keyword-counter" id="keywordCounter">0/5</div>
+                        <div class="selected-keywords" id="selectedKeywords"></div>
+                        <input type="text" class="keyword-input" id="keywordInput" placeholder="Type keyword and press Enter">
+                    </div>
+                    <div class="suggested-keywords" id="suggestedKeywords"></div>
+                </div>
+                
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Soil Moisture</label>
+                    <div class="moisture-wrap" id="moistureWrap">
+                        <div class="moisture-btn-row">
+                            <button type="button" class="moisture-btn" data-level="0" onclick="onMoistureInput(0)">0</button>
+                            <button type="button" class="moisture-btn" data-level="1" onclick="onMoistureInput(1)">1</button>
+                            <button type="button" class="moisture-btn" data-level="2" onclick="onMoistureInput(2)">2</button>
+                            <button type="button" class="moisture-btn" data-level="3" onclick="onMoistureInput(3)">3</button>
+                            <button type="button" class="moisture-btn" data-level="4" onclick="onMoistureInput(4)">4</button>
+                            <button type="button" class="moisture-btn" data-level="5" onclick="onMoistureInput(5)">5</button>
+                        </div>
+                        <div class="moisture-footer">
+                            <span class="moisture-desc" id="moistureValueLabel">Not recorded</span>
+                            <button type="button" class="moisture-clear-btn" id="moistureClearBtn" onclick="clearMoisture()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                    <button class="btn" id="cancelClassify">Cancel</button>
+                    <button class="btn btn-primary" id="saveCard">Save Card</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content" style="max-width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">Upload Settings</div>
+                <button class="modal-close" onclick="closeSettingsModal()">×</button>
+            </div>
+            <div class="modal-body" style="display:flex;flex-direction:column;gap:0.75rem;">
+                <p style="font-size: 0.75rem;">Configure to upload to a custom server:</p>
+
+                <button type="button" onclick="startQrScanner();closeSettingsModal();" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.55rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);font-family:'JetBrains Mono',monospace;font-size:0.8125rem;color:var(--text);cursor:pointer;width:100%;">📷 Scan QR code to configure</button>
+                <input id="uploadServerInput" type="text" inputmode="url" autocomplete="off" spellcheck="false"
+                       placeholder="Server URL (e.g. https://api.example.com)"
+                       class="form-input">
+                <input id="uploadUsernameInput" type="text" inputmode="text" autocomplete="off" spellcheck="false"
+                       placeholder="Username"
+                       class="form-input">
+                <input id="uploadUrlInput" type="text" inputmode="text" autocomplete="off" spellcheck="false"
+                       placeholder="Token"
+                       class="form-input">
+                <button class="btn btn-primary" onclick="closeSettingsModal()" style="margin-top:0.25rem;">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR scanner modal -->
+    <div id="qr-modal-overlay">
+        <div id="qr-video-wrap">
+            <video id="qr-video" autoplay playsinline muted></video>
+            <div class="qr-aim"></div>
+        </div>
+        <div id="qr-status">Point camera at QR code</div>
+        <button onclick="stopQrScanner()" style="padding:0.5rem 1.5rem;background:#fff;border:none;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:0.875rem;cursor:pointer;">Cancel</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script>
+        // Initialize IndexedDB
+        let db;
+        const dbName = 'Canopeo-FieldDB';
+        const storeName = 'captures';
+        const UPLOAD_SERVER_KEY = 'canopeo-field_upload_server';
+
+        const OBJECT_URL_FIELDS = ['_originalUrl', '_classifiedUrl'];
+
+        function revokeCaptureObjectUrls(card) {
+            if (!card) return;
+            OBJECT_URL_FIELDS.forEach((field) => {
+                if (card[field]) {
+                    try { URL.revokeObjectURL(card[field]); } catch (_) {}
+                    card[field] = null;
+                }
+            });
+        }
+
+        function hydrateCaptureForUI(card) {
+            if (!card) return card;
+            revokeCaptureObjectUrls(card);
+            card._originalUrl = card.originalBlob instanceof Blob
+                ? URL.createObjectURL(card.originalBlob) : '';
+            card._classifiedUrl = card.classifiedBlob instanceof Blob
+                ? URL.createObjectURL(card.classifiedBlob) : '';
+            return card;
+        }
+
+        function hydrateCapturesForUI(items) {
+            return (items || []).map((card) => hydrateCaptureForUI(card));
+        }
+
+        async function loadImageFromSource(source) {
+            const img = new Image();
+            if (source instanceof Blob) {
+                source = URL.createObjectURL(source);
+            }
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = reject;
+                img.src = source;
+            });
+            return img;
+        }
+
+        async function resizeCapturedImageToBlob(source, minSide = 1024, mimeType = 'image/jpeg', quality = 0.92) {
+            const img = await loadImageFromSource(source);
+            const w = img.naturalWidth || img.width;
+            const h = img.naturalHeight || img.height;
+
+            let nw = w;
+            let nh = h;
+
+            if (!(w < minSide && h < minSide)) {
+                const scale = minSide / Math.min(w, h);
+                nw = Math.max(1, Math.round(w * scale));
+                nh = Math.max(1, Math.round(h * scale));
+            }
+
+            const c = document.createElement('canvas');
+            c.width = nw;
+            c.height = nh;
+            const cctx = c.getContext('2d');
+            cctx.drawImage(img, 0, 0, nw, nh);
+
+            return await new Promise((resolve) => {
+                c.toBlob((blob) => resolve(blob), mimeType, quality);
+            });
+        }
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(dbName, 1);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        const objectStore = db.createObjectStore(storeName, { keyPath: 'card_id' });
+                        objectStore.createIndex('timestamp', 'timestamp', { unique: false });
+                    }
+                };
+            });
+        }
+        
+        function saveCapture(capture) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const objectStore = transaction.objectStore(storeName);
+                const request = objectStore.put(capture);
+                // Resolve on transaction.oncomplete — not request.onsuccess.
+                // On iOS Safari the transaction can still abort after the put
+                // request succeeds, causing intermittent 'Error updating card'.
+                transaction.oncomplete = () => resolve();
+                transaction.onerror   = () => reject(transaction.error);
+                transaction.onabort   = () => reject(transaction.error || new Error('Transaction aborted'));
+                request.onerror       = () => reject(request.error);
+            });
+        }
+        
+        function getAllCaptures() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readonly');
+                const objectStore = transaction.objectStore(storeName);
+                const request = objectStore.getAll();
+                
+                request.onsuccess = () => {
+                    const captures = hydrateCapturesForUI(request.result || []);
+                    captures.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                    resolve(captures);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        function deleteCapture(card_id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const objectStore = transaction.objectStore(storeName);
+                const request = objectStore.delete(card_id);
+                transaction.oncomplete = () => resolve();
+                transaction.onerror   = () => reject(transaction.error);
+                transaction.onabort   = () => reject(transaction.error || new Error('Transaction aborted'));
+                request.onerror       = () => reject(request.error);
+            });
+        }
+        
+        function clearAllCaptures() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const objectStore = transaction.objectStore(storeName);
+                const request = objectStore.clear();
+                transaction.oncomplete = () => resolve();
+                transaction.onerror   = () => reject(transaction.error);
+                transaction.onabort   = () => reject(transaction.error || new Error('Transaction aborted'));
+                request.onerror       = () => reject(request.error);
+            });
+        }
+        
+        // Initialize Swiper
+        const swiper = new Swiper('.swiper', {
+            allowTouchMove: true,
+            noSwiping: true,
+            noSwipingClass: 'no-swipe',
+            on: {
+                slideChange: function() {
+                    updateScreenIndicator(this.activeIndex);
+                }
+            }
+        });
+        
+        // State
+        let currentCapture = {
+            imageBlob: null,
+            imageUrl: null,
+            timestamp: null,
+            location: null,
+            percentage: 0,
+            alpha: 0.70,
+            color: 'green',
+            rgRatio: 0.95,
+            bgRatio: 0.95,
+            classifiedBlob: null,
+            predictions: null,  // stored after classification — reused on color/opacity changes
+            imagePixels: null,  // stored pixel data for mask rendering
+            imgWidth:    0,
+            imgHeight:   0
+        };
+
+        let captures = [];
+        let editingCardId = null;
+        let editingCardSnapshot = null;  // annotation values at the time the edit modal opened
+        let liveLocation = null;  // continuously updated by watchPosition
+        let editKeywords = [];  // declared early — used in renderSuggestedKeywords
+        
+        const colorMap = {
+            green:    { r: 57,  g: 255, b: 20  },   // neon green (lime)
+            orange:   { r: 255, g: 111, b: 0   },   // vibrant orange
+            pink:     { r: 255, g: 20,  b: 147 },   // neon pink
+            blue:     { r: 0,   g: 191, b: 255 },   // neon cyan-blue
+            yellow:   { r: 255, g: 255, b: 0   },   // neon yellow
+            purple:   { r: 186, g: 85,  b: 255 },   // vibrant electric purple
+            white:    { r: 255, g: 255, b: 255 },   // white
+            original: null                           // sentinel — use source pixel values
+        };
+        // ── SOIL MOISTURE ─────────────────────────────────────────────────────
+        // null = not recorded; 0-5 integer scale
+        let selectedMoisture     = null;
+        let selectedEditMoisture = null;
+
+        const MOISTURE_LABELS = [
+            'Dry (dust, air-dry soil)',              // 0
+            'Wilting point (severe stress, plants cannot extract water)',    // 1
+            'Moderately dry (plants are stressed but surviving)',   // 2
+            'Moderately wet (adequate water, plants show no signs of stress)',   // 3
+            'Field capacity (optimal water, ~2-3 days after heavy rainfall)',   // 4
+            'Saturated (waterlogged or muddy conditions)'        // 5
+        ];
+
+        function moistureLabel(v) {
+            return MOISTURE_LABELS[Math.round(v)] || '';
+        }
+
+        const MOISTURE_SHORT_LABELS = [
+            'Dry',            // 0
+            'Wilting point',  // 1
+            'Moderately dry', // 2
+            'Moderately wet', // 3
+            'Field capacity', // 4
+            'Saturated'       // 5
+        ];
+
+        function moistureShortLabel(v) {
+            return MOISTURE_SHORT_LABELS[Math.round(v)] || '';
+        }
+
+        function setMoistureBtns(wrapId, level) {
+            document.querySelectorAll('#' + wrapId + ' .moisture-btn').forEach(function(btn) {
+                btn.classList.toggle('selected', parseInt(btn.dataset.level) === level);
+            });
+        }
+
+        function onMoistureInput(val) {
+            selectedMoisture = val;
+            setMoistureBtns('moistureWrap', val);
+            document.getElementById('moistureValueLabel').textContent =
+                val + '/5 — ' + moistureLabel(val);
+        }
+
+        function clearMoisture() {
+            selectedMoisture = null;
+            setMoistureBtns('moistureWrap', -1);
+            document.getElementById('moistureValueLabel').textContent = "Not recorded";
+        }
+
+        function resetMoistureSelector() {
+            clearMoisture();
+        }
+
+        function onEditMoistureInput(val) {
+            selectedEditMoisture = val;
+            setMoistureBtns('editMoistureWrap', val);
+            document.getElementById('editMoistureValueLabel').textContent =
+                val + '/5 — ' + moistureLabel(val);
+        }
+
+        function clearEditMoisture() {
+            selectedEditMoisture = null;
+            setMoistureBtns('editMoistureWrap', -1);
+            document.getElementById('editMoistureValueLabel').textContent = "Not recorded";
+        }
+
+        // ── BBCH PRINCIPAL GROWTH STAGES ─────────────────────────────────
+        // Reference: Meier, U. (Ed.) (2001). Growth stages of mono- and
+        // dicotyledonous plants. BBCH Monograph (2nd ed.).
+        // Federal Biological Research Centre for Agriculture and Forestry.
+        //
+        // 10 buttons (0–9) map to BBCH principal growth stages.
+        // Crop-specific labels override the generic fallback where applicable.
+
+        const BBCH_LABELS_GENERIC = [
+            'Germination / sprouting',           // 0
+            'Leaf development (main shoot)',      // 1
+            'Tillering / side shoot formation',   // 2
+            'Stem elongation / rosette growth',   // 3
+            'Booting / swelled flag leaf sheath', // 4
+            'Heading / inflorescence emergence',  // 5
+            'Flowering / anthesis',               // 6
+            'Fruit / seed development',           // 7
+            'Ripening of fruit and seed',         // 8
+            'Senescence'                          // 9
+        ];
+
+        // Keys must match the lowercase, trimmed crop name stored in selectedCrop.
+        // Each array has exactly 10 entries (one per button 0–9).
+        const BBCH_LABELS_CROP = {
+            'winter wheat': [
+                'Germination',                   // 0
+                'Seedling (1–3 leaves)',          // 1
+                'Tillering',                      // 2
+                'Stem elongation',                // 3
+                'Booting (flag leaf sheath)',     // 4
+                'Heading / ear emergence',        // 5
+                'Flowering / anthesis',           // 6
+                'Milky grain',                    // 7
+                'Dough stage / ripening',         // 8
+                'Senescence / harvest ripe'       // 9
+            ],
+            'soybean': [
+                'Germination',                    // 0
+                'Cotyledons / unifoliate leaf',   // 1
+                'First trifoliate (V2)',           // 2
+                'V3–V4 vegetative',               // 3
+                'V5–V6 vegetative',               // 4
+                'R1 — first flower',              // 5
+                'R2–R3 — full flower / pod set',  // 6
+                'R4–R5 — pod fill / seed growth', // 7
+                'R6 — full seed / beginning mat.',// 8
+                'R7–R8 — maturity'                // 9
+            ],
+            'corn': [
+                'Germination / emergence',        // 0
+                'V1–V2',                          // 1
+                'V3–V4',                          // 2
+                'V5–V6',                          // 3
+                'V7–V10',                         // 4
+                'V11–VT (tassel emergence)',       // 5
+                'R1 — silking',                   // 6
+                'R2–R3 — blister / milk',         // 7
+                'R4–R5 — dough / dent',           // 8
+                'R6 — physiological maturity'     // 9
+            ],
+            'sorghum': [
+                'Germination / emergence',        // 0
+                'V1–V2 seedling',                 // 1
+                'V3–V4',                          // 2
+                'V5–V7',                          // 3
+                'V8–V10 / flag leaf visible',     // 4
+                'Boot / head emergence',          // 5
+                'Flowering / anthesis',           // 6
+                'Soft dough / blister',           // 7
+                'Hard dough / physiological mat.',// 8
+                'Maturity / harvest'              // 9
+            ]
+        };
+
+        function getBbchLabels() {
+            const crop = (selectedCrop || '').trim().toLowerCase();
+            return BBCH_LABELS_CROP[crop] || BBCH_LABELS_GENERIC;
+        }
+
+        function getEditBbchLabels() {
+            const crop = (selectedEditCrop || '').trim().toLowerCase();
+            return BBCH_LABELS_CROP[crop] || BBCH_LABELS_GENERIC;
+        }
+
+        let selectedBbch     = null;
+        let selectedEditBbch = null;
+
+        function setBbchBtns(wrapId, stage) {
+            document.querySelectorAll('#' + wrapId + ' .bbch-btn').forEach(function(btn) {
+                btn.classList.toggle('selected', parseInt(btn.dataset.stage) === stage);
+            });
+        }
+
+        function onBbchInput(val) {
+            selectedBbch = val;
+            setBbchBtns('bbchWrap', val);
+            document.getElementById('bbchValueLabel').textContent = val + ' — ' + getBbchLabels()[val];
+        }
+
+        function clearBbch() {
+            selectedBbch = null;
+            setBbchBtns('bbchWrap', -1);
+            document.getElementById('bbchValueLabel').textContent = 'Not recorded';
+        }
+
+        function resetBbchSelector() { clearBbch(); }
+
+        function onEditBbchInput(val) {
+            selectedEditBbch = val;
+            setBbchBtns('editBbchWrap', val);
+            document.getElementById('editBbchValueLabel').textContent = val + ' — ' + getEditBbchLabels()[val];
+        }
+
+        function clearEditBbch() {
+            selectedEditBbch = null;
+            setBbchBtns('editBbchWrap', -1);
+            document.getElementById('editBbchValueLabel').textContent = 'Not recorded';
+        }
+
+        // ── CROP FIELD (typeable + MRU suggestions) ───────────────────────
+        const CROP_STORAGE_KEY = 'canopeo-field_crops';
+        const MAX_SAVED_CROPS  = 10;
+        let savedCrops      = JSON.parse(localStorage.getItem(CROP_STORAGE_KEY)) || [];
+        let selectedCrop     = null;
+        let selectedEditCrop = null;
+
+        function renderCropTag(tagId, crop, clearFn) {
+            const el = document.getElementById(tagId);
+            if (!el) return;
+            el.innerHTML = '';
+            if (!crop) return;
+            const tag = document.createElement('div');
+            tag.className = 'crop-selected-tag';
+            const txt = document.createElement('span');
+            txt.textContent = crop;
+            const btn = document.createElement('button');
+            btn.type = 'button'; btn.textContent = '×';
+            btn.addEventListener('click', clearFn);
+            tag.appendChild(txt); tag.appendChild(btn);
+            el.appendChild(tag);
+        }
+
+        function renderCropSuggestions(sugId, inputId, setCropFn, currentCrop) {
+            const el = document.getElementById(sugId);
+            if (!el) return;
+            el.innerHTML = '';
+            savedCrops.filter(c => c !== currentCrop).forEach(function(c) {
+                const chip = document.createElement('div');
+                chip.className = 'suggested-keyword';
+                const lbl = document.createElement('span');
+                lbl.textContent = c; lbl.style.cursor = 'pointer';
+                lbl.addEventListener('click', function() { setCropFn(c); });
+                const del = document.createElement('button');
+                del.type = 'button'; del.textContent = '×';
+                del.title = 'Remove from suggestions';
+                del.className = 'chip-del';
+                del.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    savedCrops = savedCrops.filter(function(k) { return k !== c; });
+                    localStorage.setItem(CROP_STORAGE_KEY, JSON.stringify(savedCrops));
+                    renderCropSuggestions(sugId, inputId, setCropFn, currentCrop);
+                });
+                chip.appendChild(lbl); chip.appendChild(del);
+                el.appendChild(chip);
+            });
+        }
+
+        function commitCrop(val) {
+            const kw = val.trim().toLowerCase();
+            if (!kw) return;
+            selectedCrop = kw;
+            savedCrops = [kw, ...savedCrops.filter(c => c !== kw)].slice(0, MAX_SAVED_CROPS);
+            localStorage.setItem(CROP_STORAGE_KEY, JSON.stringify(savedCrops));
+            renderCropTag('cropSelectedTag', selectedCrop, clearCrop);
+            renderCropSuggestions('cropSuggestions', 'cropInput', commitCrop, selectedCrop);
+            const inp = document.getElementById('cropInput');
+            if (inp) inp.value = '';
+            // Refresh stage label to use crop-specific names
+            if (selectedBbch !== null) onBbchInput(selectedBbch);
+        }
+
+        function clearCrop() {
+            selectedCrop = null;
+            renderCropTag('cropSelectedTag', null, clearCrop);
+            renderCropSuggestions('cropSuggestions', 'cropInput', commitCrop, null);
+            // Refresh stage label back to generic names
+            if (selectedBbch !== null) onBbchInput(selectedBbch);
+        }
+
+        function resetCropSelector() { clearCrop(); }
+
+        function commitEditCrop(val) {
+            const kw = val.trim().toLowerCase();
+            if (!kw) return;
+            selectedEditCrop = kw;
+            savedCrops = [kw, ...savedCrops.filter(c => c !== kw)].slice(0, MAX_SAVED_CROPS);
+            localStorage.setItem(CROP_STORAGE_KEY, JSON.stringify(savedCrops));
+            renderCropTag('editCropSelectedTag', selectedEditCrop, clearEditCrop);
+            renderCropSuggestions('editCropSuggestions', 'editCropInput', commitEditCrop, selectedEditCrop);
+            const inp = document.getElementById('editCropInput');
+            if (inp) inp.value = '';
+            // Refresh stage label to use crop-specific names
+            if (selectedEditBbch !== null) onEditBbchInput(selectedEditBbch);
+        }
+
+        function clearEditCrop() {
+            selectedEditCrop = null;
+            renderCropTag('editCropSelectedTag', null, clearEditCrop);
+            renderCropSuggestions('editCropSuggestions', 'editCropInput', commitEditCrop, null);
+            // Refresh stage label back to generic names
+            if (selectedEditBbch !== null) onEditBbchInput(selectedEditBbch);
+        }
+
+        // ── CANOPEO CLASSIFICATION ─────────────────────────────────────────────
+        // Patrignani & Ochsner (2015): a pixel is green canopy when
+        //   R/G < rgRatio  AND  B/G < bgRatio  AND  2G - R - B > 0
+        // Returns Uint8Array where 1 = canopy, 0 = background
+        function runCanopeoClassification(imageData, rgRatio, bgRatio) {
+            const data = imageData.data;
+            const totalPixels = imageData.width * imageData.height;
+            const predictions = new Uint8Array(totalPixels);
+            for (let px = 0, i = 0; px < totalPixels; px++, i += 4) {
+                const R = data[i];
+                const G = data[i + 1];
+                const B = data[i + 2];
+                if (G > 0 && (R / G) < rgRatio && (B / G) < bgRatio && (2 * G - R - B) > 0) {
+                    predictions[px] = 1;
+                }
+            }
+            return predictions;
+        }
+
+        // Screen indicator
+        function updateScreenIndicator(index) {
+            document.querySelectorAll('.dot').forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+        }
+        
+        // GPS
+        function startGPS() {
+            if (!navigator.geolocation) {
+                document.getElementById('gpsText').textContent = 'No GPS';
+                return;
+            }
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 60000,
+                maximumAge: 1000
+            };
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    liveLocation = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                    document.getElementById('gpsIndicator').classList.add('active');
+                    document.getElementById('gpsText').textContent = 'GPS';
+                },
+                (error) => {
+                    document.getElementById('gpsIndicator').classList.remove('active');
+                    const msgs = {
+                        1: 'GPS denied',
+                        2: 'GPS unavailable',
+                        3: 'GPS timeout'
+                    };
+                    document.getElementById('gpsText').textContent = msgs[error.code] || 'No GPS';
+                    console.warn('GPS error:', error.code, error.message);
+                },
+                options
+            );
+        }
+                
+        // SCREEN 1: Capture
+        const captureIcon = document.getElementById('captureIcon');
+        const captureInput = document.getElementById('captureInput');
+        
+        captureIcon.addEventListener('click', () => {
+            captureInput.click();
+        });
+        
+        
+        captureInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                processImage(file);
+            }
+        });
+        
+
+        async function processImage(imageSource) {
+            // Revoke previous object URLs immediately
+            if (currentCapture.imageUrl) {
+                try { URL.revokeObjectURL(currentCapture.imageUrl); } catch (_) {}
+            }
+            // Reset state and open modal immediately — don't wait for resize
+            currentCapture.imageBlob    = null;
+            currentCapture.imageUrl     = null;
+            currentCapture.classifiedBlob = null;
+            currentCapture.predictions  = null;
+            currentCapture.imagePixels  = null;
+            currentCapture.imgWidth     = 0;
+            currentCapture.imgHeight    = 0;
+            // Snapshot timestamp and location at the moment of capture — not entry
+            currentCapture.timestamp = new Date().toISOString();
+            currentCapture.location = liveLocation ? { ...liveLocation } : null;
+            currentCapture.alpha = 0.70;
+            currentCapture.color = 'green';
+            const _ratio = parseFloat(document.getElementById('rgRatioSlider').value);
+            currentCapture.rgRatio = _ratio;
+            currentCapture.bgRatio = _ratio;
+            resetMoistureSelector();
+            resetBbchSelector();
+            resetCropSelector();
+
+            document.getElementById('alphaSlider').value = 0.70;
+            document.getElementById('alphaValue').textContent = '0.70';
+            viewMode = 'blended';
+            document.getElementById('viewToggle').textContent = 'Blended';
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+            document.querySelector('.color-option.green').classList.add('active');
+            document.getElementById('metaTimestamp').textContent = formatTimestamp(currentCapture.timestamp);
+            if (currentCapture.location) {
+                document.getElementById('metaGPS').textContent =
+                    `${currentCapture.location.latitude.toFixed(8)}, ${currentCapture.location.longitude.toFixed(8)}`;
+            } else {
+                document.getElementById('metaGPS').textContent = 'Fetching...';
+            }
+
+            // Show modal immediately with loading spinner in image area
+            document.getElementById('originalImage').src = '';
+            document.getElementById('originalImage').style.opacity = '0.3';
+            document.getElementById('coveragePercentage').textContent = '…';
+            // Disable Save until image is fully processed to prevent saving null blob
+            document.getElementById('saveCard').disabled = true;
+            document.getElementById('classifyModal').classList.add('active');
+            const hint = document.getElementById('classifyTapHint');
+            if (hint) hint.classList.remove('hidden');
+
+            // Now do the heavy resize — UI is already visible
+            const resizedBlob = await resizeCapturedImageToBlob(imageSource, 1024, 'image/jpeg', 0.92);
+            currentCapture.imageBlob = resizedBlob;
+            currentCapture.imageUrl = URL.createObjectURL(resizedBlob);
+            document.getElementById('originalImage').style.opacity = '';
+            // Re-enable Save now that the image blob is ready
+            document.getElementById('saveCard').disabled = false;
+            displayClassification();
+        }
+        
+        // SCREEN 2: Classification
+        const originalImage = document.getElementById('originalImage');
+        const classifiedCanvas = document.getElementById('classifiedCanvas');
+        const classifiedCtx = classifiedCanvas.getContext('2d');
+        const alphaSlider = document.getElementById('alphaSlider');
+        const alphaValue = document.getElementById('alphaValue');
+        const coveragePercentage = document.getElementById('coveragePercentage');
+        const viewToggle = document.getElementById('viewToggle');
+        const colorOptions = document.querySelectorAll('.color-option');
+        
+        let viewMode = 'blended'; // 'blended' or 'mask'
+        
+        function toggleView() {
+            if (viewMode === 'blended') {
+                viewMode = 'mask';
+                viewToggle.textContent = 'Mask';
+            } else {
+                viewMode = 'blended';
+                viewToggle.textContent = 'Blended';
+            }
+            renderMask();
+        }
+        
+        viewToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleView();
+        });
+        
+        // Make entire image container clickable
+        const imageContainer = document.querySelector('#classifyModal .image-container');
+        imageContainer.addEventListener('click', (e) => {
+            // Don't toggle if clicking the button
+            const toggle = document.getElementById('viewToggle');
+            if (e.target !== toggle && !toggle.contains(e.target)) {
+                toggleView();
+                // Fade out the hint after first tap
+                const hint = document.getElementById('classifyTapHint');
+                if (hint) hint.classList.add('hidden');
+            }
+        });
+        
+        colorOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                colorOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                currentCapture.color = option.dataset.color;
+                renderMask();
+            });
+        });
+        
+        alphaSlider.addEventListener('input', (e) => {
+            currentCapture.alpha = parseFloat(e.target.value);
+            alphaValue.textContent = currentCapture.alpha.toFixed(2);
+            renderMask();
+        });
+
+        document.getElementById('rgRatioSlider').addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            currentCapture.rgRatio = val;
+            currentCapture.bgRatio = val;
+            document.getElementById('rgRatioValue').textContent = val.toFixed(2);
+            // Re-run full classification since threshold changed
+            if (currentCapture.imageUrl) runClassification();
+        });
+
+        
+        function displayClassification() {
+            originalImage.src = currentCapture.imageUrl;
+            originalImage.onload = () => { runClassification(); };
+        }
+        
+        // ── CLASSIFICATION (runs once per image, or when thresholds change) ──────
+        function runClassification() {
+            const img = new Image();
+            img.onload = () => {
+                const tempCanvas = document.createElement('canvas');
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCanvas.width  = img.width;
+                tempCanvas.height = img.height;
+                tempCtx.drawImage(img, 0, 0);
+                const imageData = tempCtx.getImageData(0, 0, img.width, img.height);
+
+                const predictions = runCanopeoClassification(
+                    imageData,
+                    currentCapture.rgRatio,
+                    currentCapture.bgRatio
+                );
+
+                // Store results — renderMask() reuses these on every color/opacity/mode change
+                currentCapture.predictions = predictions;
+                currentCapture.imagePixels = imageData.data;
+                currentCapture.imgWidth    = img.width;
+                currentCapture.imgHeight   = img.height;
+
+                // Canopy count is fixed for this image — compute once here
+                let canopyCount = 0;
+                for (let px = 0; px < predictions.length; px++) {
+                    if (predictions[px] === 1) canopyCount++;
+                }
+                currentCapture.percentage = (canopyCount / predictions.length) * 100;
+                coveragePercentage.textContent = currentCapture.percentage.toFixed(1) + '%';
+
+                renderMask();
+            };
+            img.src = currentCapture.imageUrl;
+        }
+
+        // ── RENDER MASK (runs on color / opacity / mode change — no inference) ───
+        async function renderMask() {
+            if (!currentCapture.predictions) return;
+            const predictions = currentCapture.predictions;
+            const pixels      = currentCapture.imagePixels;
+            const w = currentCapture.imgWidth;
+            const h = currentCapture.imgHeight;
+            const totalPixels = w * h;
+            const maskColor = colorMap[currentCapture.color];  // null when 'original'
+            const alpha     = currentCapture.alpha;
+            const useOriginal = (currentCapture.color === 'original');
+
+            const coloredMaskData = new ImageData(w, h);
+            const coloredPixels   = coloredMaskData.data;
+            const blendedData     = new ImageData(w, h);
+            const blendPixels     = blendedData.data;
+
+            for (let px = 0, i = 0; px < totalPixels; px++, i += 4) {
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+                const isCanopy = predictions[px] === 1;
+
+                if (useOriginal) {
+                    // Mask view: canopy = original pixel, background = black
+                    coloredPixels[i]     = isCanopy ? r : 0;
+                    coloredPixels[i + 1] = isCanopy ? g : 0;
+                    coloredPixels[i + 2] = isCanopy ? b : 0;
+                    coloredPixels[i + 3] = 255;
+                    // Blended view: canopy fully visible, background dimmed
+                    blendPixels[i]     = isCanopy ? r : r * (1 - alpha);
+                    blendPixels[i + 1] = isCanopy ? g : g * (1 - alpha);
+                    blendPixels[i + 2] = isCanopy ? b : b * (1 - alpha);
+                    blendPixels[i + 3] = 255;
+                } else {
+                    coloredPixels[i]     = isCanopy ? maskColor.r : 0;
+                    coloredPixels[i + 1] = isCanopy ? maskColor.g : 0;
+                    coloredPixels[i + 2] = isCanopy ? maskColor.b : 0;
+                    coloredPixels[i + 3] = 255;
+
+                    blendPixels[i]     = isCanopy ? r * (1 - alpha) + maskColor.r * alpha : r * (1 - alpha);
+                    blendPixels[i + 1] = isCanopy ? g * (1 - alpha) + maskColor.g * alpha : g * (1 - alpha);
+                    blendPixels[i + 2] = isCanopy ? b * (1 - alpha) + maskColor.b * alpha : b * (1 - alpha);
+                    blendPixels[i + 3] = 255;
+                }
+            }
+
+            classifiedCanvas.width  = w;
+            classifiedCanvas.height = h;
+            classifiedCtx.putImageData(viewMode === 'mask' ? coloredMaskData : blendedData, 0, 0);
+
+            // Classified blob uses the pure color mask (alpha/viewMode don't affect the saved mask)
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = w; maskCanvas.height = h;
+            maskCanvas.getContext('2d').putImageData(coloredMaskData, 0, 0);
+            currentCapture.classifiedBlob = await new Promise(resolve => maskCanvas.toBlob(resolve, 'image/png'));
+        }
+
+        // Metadata handling
+        const metaComments = document.getElementById('metaComments');
+        const charCount = document.getElementById('charCount');
+        const keywordInput = document.getElementById('keywordInput');
+        const selectedKeywordsDiv = document.getElementById('selectedKeywords');
+        const suggestedKeywordsDiv = document.getElementById('suggestedKeywords');
+        const keywordCounter = document.getElementById('keywordCounter');
+        
+        const MAX_KEYWORDS   = 5;
+        const MAX_SAVED_KW   = 6;   // max suggestions kept in localStorage
+        let selectedKeywords = [];
+        // Use an array (not Set) so we can maintain MRU order.
+        // Most-recently-used keywords float to the front.
+        let savedKeywords = JSON.parse(localStorage.getItem('canopeo-field_keywords')) || ['irrigated','rainfed','no-till','conventional till','cover crop']
+        
+        metaComments.addEventListener('input', () => {
+            const remaining = 200 - metaComments.value.length;
+            charCount.textContent = remaining;
+        });
+        
+        function updateKeywordCounter() {
+            keywordCounter.textContent = `${selectedKeywords.length}/${MAX_KEYWORDS}`;
+            if (selectedKeywords.length >= MAX_KEYWORDS) {
+                keywordCounter.classList.add('limit-reached');
+                keywordInput.disabled = true;
+                keywordInput.placeholder = 'Maximum keywords reached';
+            } else {
+                keywordCounter.classList.remove('limit-reached');
+                keywordInput.disabled = false;
+                keywordInput.placeholder = 'Type keyword and press Enter';
+            }
+        }
+        
+        function renderSelectedKeywords() {
+            selectedKeywordsDiv.innerHTML = '';
+
+            selectedKeywords.forEach((kw) => {
+                const pill = document.createElement('div');
+                pill.className = 'keyword-pill';
+
+                const text = document.createElement('span');
+                text.textContent = kw;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '×';
+                btn.addEventListener('click', () => removeKeyword(kw));
+
+                pill.appendChild(text);
+                pill.appendChild(btn);
+                selectedKeywordsDiv.appendChild(pill);
+            });
+
+            updateKeywordCounter();
+        }
+        
+        function removeSavedKeyword(kw) {
+            savedKeywords = savedKeywords.filter(k => k !== kw);
+            localStorage.setItem('canopeo-field_keywords', JSON.stringify(savedKeywords));
+            renderSuggestedKeywords();
+        }
+
+        function makeSuggestedChip(kw, onAdd) {
+            const wrap = document.createElement('div');
+            wrap.className = 'suggested-keyword';
+            const label = document.createElement('span');
+            label.textContent = kw;
+            label.style.cursor = 'pointer';
+            label.addEventListener('click', () => onAdd(kw));
+            const del = document.createElement('button');
+            del.type = 'button';
+            del.textContent = '×';
+            del.title = 'Remove from suggestions';
+            del.className = 'chip-del';
+            del.addEventListener('click', (e) => { e.stopPropagation(); removeSavedKeyword(kw); });
+            wrap.appendChild(label);
+            wrap.appendChild(del);
+            return wrap;
+        }
+
+        function renderSuggestedKeywords() {
+            // Classify modal suggestions
+            suggestedKeywordsDiv.innerHTML = '';
+            savedKeywords
+                .filter(kw => !selectedKeywords.includes(kw))
+                .forEach((kw) => suggestedKeywordsDiv.appendChild(makeSuggestedChip(kw, addKeyword)));
+            // Edit modal suggestions (only when addEditKeyword is available)
+            const editSugDiv = document.getElementById('editSuggestedKeywords');
+            if (editSugDiv && typeof addEditKeyword === 'function') {
+                editSugDiv.innerHTML = '';
+                savedKeywords
+                    .filter(kw => !editKeywords.includes(kw))
+                    .forEach((kw) => editSugDiv.appendChild(makeSuggestedChip(kw, addEditKeyword)));
+            }
+        }
+        
+        window.addKeyword = function(keyword) {
+            const kw = keyword.trim().toLowerCase();
+            if (kw && !selectedKeywords.includes(kw) && selectedKeywords.length < MAX_KEYWORDS) {
+                selectedKeywords.push(kw);
+                // Move to front (MRU), cap at MAX_SAVED_KW
+                savedKeywords = [kw, ...savedKeywords.filter(k => k !== kw)].slice(0, MAX_SAVED_KW);
+                localStorage.setItem('canopeo-field_keywords', JSON.stringify(savedKeywords));
+                renderSelectedKeywords();
+                renderSuggestedKeywords();
+            }
+        };
+        
+        window.removeKeyword = function(keyword) {
+            selectedKeywords = selectedKeywords.filter(kw => kw !== keyword);
+            renderSelectedKeywords();
+            renderSuggestedKeywords();
+        };
+        
+        keywordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const keyword = keywordInput.value.trim();
+                if (keyword && selectedKeywords.length < MAX_KEYWORDS) {
+                    addKeyword(keyword);
+                    keywordInput.value = '';
+                }
+            }
+        });
+        
+        // Initialize keyword display
+        renderSuggestedKeywords();
+        updateKeywordCounter();
+
+        // Wire crop input — classify modal
+        (function() {
+            const inp = document.getElementById('cropInput');
+            if (!inp) return;
+            inp.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitCrop(inp.value);
+                }
+            });
+            renderCropSuggestions('cropSuggestions', 'cropInput', commitCrop, null);
+        })();
+
+        // Wire crop input — edit modal
+        (function() {
+            const inp = document.getElementById('editCropInput');
+            if (!inp) return;
+            inp.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    commitEditCrop(inp.value);
+                }
+            });
+        })();
+        
+        // Classification Modal handlers
+        function dismissClassifyModal() {
+            document.getElementById('classifyModal').classList.remove('active');
+            const sb = document.getElementById('saveCard');
+            sb.disabled = false;
+            sb.textContent = 'Save Card';
+        }
+        document.getElementById('closeClassifyModal').addEventListener('click', dismissClassifyModal);
+        document.getElementById('cancelClassify').addEventListener('click', dismissClassifyModal);
+        
+        document.getElementById('saveCard').addEventListener('click', async () => {
+            const saveBtn = document.getElementById('saveCard');
+            if (saveBtn.disabled) return;
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving…';
+
+            const cardId = makeObservationId(currentCapture.location);
+            const card = {
+                card_id: cardId,
+                timestamp: currentCapture.timestamp,
+                location: currentCapture.location,
+                percentage: currentCapture.percentage,
+                algorithm: 'canopeo',
+                rg_ratio: currentCapture.rgRatio,
+                bg_ratio: currentCapture.bgRatio,
+                alpha: currentCapture.alpha,
+                color: currentCapture.color,
+                comments: metaComments.value,
+                keywords: selectedKeywords.join(', '),
+                soil_moisture: selectedMoisture,
+                crop: selectedCrop,
+                bbch: selectedBbch,
+                uploaded: false,
+                uploaded_at: null,
+                skip_upload: false,
+                originalBlob: currentCapture.imageBlob,
+                classifiedBlob: currentCapture.classifiedBlob
+            };
+            
+            try {
+                await saveCapture(card);
+                // Hydrate and prepend directly — avoids IndexedDB round-trip
+                // that revokes and recreates all blob URLs (breaks iOS)
+                hydrateCaptureForUI(card);
+                captures.unshift(card);
+                
+                metaComments.value = '';
+                selectedKeywords = [];
+                renderSelectedKeywords();
+                renderSuggestedKeywords();
+                charCount.textContent = '200';
+                resetMoistureSelector();
+                resetBbchSelector();
+                resetCropSelector();
+                
+                if (currentCapture.imageUrl) { try { URL.revokeObjectURL(currentCapture.imageUrl); } catch (_) {} }
+                currentCapture.imageBlob = null;
+                currentCapture.imageUrl = null;
+                currentCapture.classifiedBlob = null;
+                
+                document.getElementById('classifyModal').classList.remove('active');
+                saveBtn.textContent = 'Save Card';
+                saveBtn.disabled = false;
+                swiper.slideTo(1); // Go to gallery
+                renderGallery();
+                updateMap();
+                showToast('Card saved', 'success');
+            } catch (error) {
+                console.error('Error saving card:', error);
+                showToast('Error saving card', 'error');
+                saveBtn.textContent = 'Save Card';
+                saveBtn.disabled = false;
+            }
+        });
+        
+        // GALLERY
+        document.getElementById('downloadAllBtn').addEventListener('click', () => {
+            if (captures.length === 0) return;
+            captures.forEach((capture, index) => {
+                setTimeout(() => downloadCard(capture.card_id), index * 600);
+            });
+        });
+        
+        document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
+        document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+        document.getElementById('clearAllBtn').addEventListener('click', clearAll);
+
+        // OPTIONAL UPLOAD (token only; app remains offline-first)
+        const uploadTokenInput = document.getElementById('uploadUrlInput');
+        const uploadUsernameInput = document.getElementById('uploadUsernameInput');
+        const uploadAllBtn = document.getElementById('uploadAllBtn');
+        const UPLOAD_TOKEN_KEY    = 'canopeo-field_upload_token';
+        const UPLOAD_USERNAME_KEY  = 'canopeo-field_upload_username';
+
+        // Restore saved server URL and token (if any)
+        const uploadServerInput = document.getElementById('uploadServerInput');
+        const savedServer = localStorage.getItem(UPLOAD_SERVER_KEY) || '';
+        if (uploadServerInput) {
+            uploadServerInput.value = savedServer;
+            uploadServerInput.addEventListener('input', () => {
+                const val = (uploadServerInput.value || '').trim();
+                if (val) localStorage.setItem(UPLOAD_SERVER_KEY, val);
+                else localStorage.removeItem(UPLOAD_SERVER_KEY);
+                updateUploadUI();
+            });
+        }
+
+        function openSettingsModal() {
+            document.getElementById('settingsModal').classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settingsModal').classList.remove('active');
+        }
+
+        // Restore saved username and token (if any)
+        if (uploadUsernameInput) {
+            uploadUsernameInput.value = localStorage.getItem(UPLOAD_USERNAME_KEY) || '';
+        }
+        if (uploadTokenInput) {
+            uploadTokenInput.value = localStorage.getItem(UPLOAD_TOKEN_KEY) || '';
+        }
+
+        function pendingCaptures() {
+            return captures.filter(c => !c.uploaded && !c.skip_upload);
+        }
+
+        function updateUploadUI() {
+            if (!uploadAllBtn) return;
+            const serverVal   = (uploadServerInput && uploadServerInput.value || localStorage.getItem(UPLOAD_SERVER_KEY) || '').trim();
+            const usernameVal = (uploadUsernameInput && uploadUsernameInput.value || localStorage.getItem(UPLOAD_USERNAME_KEY) || '').trim();
+            const tokenVal    = (uploadTokenInput && uploadTokenInput.value || localStorage.getItem(UPLOAD_TOKEN_KEY) || '').trim();
+            const hasServer   = serverVal.length > 0;
+            const pending     = pendingCaptures().length;
+
+            const credentialsOk = hasServer && usernameVal && tokenVal;
+            uploadAllBtn.style.display = credentialsOk ? 'inline-flex' : 'none';
+            uploadAllBtn.disabled = pending === 0;
+            uploadAllBtn.textContent = pending === 0 ? '⬆ Upload' : `⬆ Upload (${pending})`;
+        }
+
+        if (uploadUsernameInput) {
+            uploadUsernameInput.addEventListener('input', () => {
+                const username = (uploadUsernameInput.value || '').trim();
+                if (username) localStorage.setItem(UPLOAD_USERNAME_KEY, username);
+                else localStorage.removeItem(UPLOAD_USERNAME_KEY);
+                updateUploadUI();
+            });
+        }
+
+        if (uploadTokenInput) {
+            uploadTokenInput.addEventListener('input', () => {
+                const token = (uploadTokenInput.value || '').trim();
+                if (token) localStorage.setItem(UPLOAD_TOKEN_KEY, token);
+                else localStorage.removeItem(UPLOAD_TOKEN_KEY);
+                updateUploadUI();
+            });
+        }
+
+        if (uploadAllBtn) {
+            uploadAllBtn.addEventListener('click', async (event) => {
+                event.preventDefault();
+
+                const url = getUploadUrl();
+
+                if (!url) {
+                    showToast('Enter a server URL in the gallery upload panel', 'error');
+                    return;
+                }
+
+                const username = (uploadUsernameInput?.value || '').trim();
+                const token = (uploadTokenInput?.value || '').trim();
+                if (!username || !token) {
+                    showToast('Enter both username and token before uploading', 'error');
+                    return;
+                }
+
+                const toUpload = pendingCaptures();
+                if (toUpload.length === 0) {
+                    showToast('No new images to upload', 'info');
+                    updateUploadUI();
+                    return;
+                }
+
+                uploadAllBtn.disabled = true;
+                uploadAllBtn.textContent = `Uploading 0 / ${toUpload.length}…`;
+                swiper.allowTouchMove = false; // prevent accidental swipe during upload
+
+                let okCount = 0;
+
+                try {
+                    for (const cap of toUpload) {
+                        uploadAllBtn.textContent = `Uploading ${okCount + 1} / ${toUpload.length}…`;
+                        const payload = await buildUploadPayload(cap);
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!res.ok) {
+                            throw new Error(`HTTP ${res.status}`);
+                        }
+
+                        const data = await res.json();
+                        // Mark as uploaded whether new or duplicate — either way it's on the server
+                        cap.uploaded = true;
+                        cap.uploaded_at = data.uploaded_at || new Date().toISOString();
+                        await saveCapture(cap);
+
+                        okCount++;
+                    }
+
+                    // Re-reading from IndexedDB here causes iOS to fail blob
+                    // deserialisation in the same session — the in-memory captures
+                    // already have correct _originalUrl values and updated flags.
+                    renderGallery();
+                    updateMap();
+                    swiper.slideTo(1);
+                    showToast(`${okCount} image${okCount === 1 ? '' : 's'} uploaded`, 'success');
+                } catch (err) {
+                    console.error('Upload failed:', err);
+                    renderGallery();
+                    swiper.slideTo(1);
+                    showToast(`Upload stopped after ${okCount} of ${toUpload.length} — tap to retry`, 'error');
+                } finally {
+                    updateUploadUI();
+                    swiper.allowTouchMove = true; // re-enable swipe
+                }
+            });
+        }
+
+        function updateStorageUI() {
+            const el = document.getElementById('storageUsage');
+            if (!el) return;
+            // Sum actual blob sizes — more reliable than navigator.storage.estimate()
+            const totalBytes = captures.reduce(function(sum, c) {
+                return sum + (c.originalBlob ? c.originalBlob.size : 0)
+                           + (c.classifiedBlob ? c.classifiedBlob.size : 0);
+            }, 0);
+            if (captures.length === 0) { el.style.display = 'none'; return; }
+            const mb = (totalBytes / 1024 / 1024).toFixed(1);
+            el.style.display = 'inline';
+            el.textContent = '| ' + mb + ' MB';
+            el.style.fontWeight = '';
+            el.style.color = '';
+        }
+
+        async function toggleSkipUpload(card_id) {
+            const card = captures.find(c => c.card_id === card_id);
+            if (!card) return;
+            card.skip_upload = !card.skip_upload;
+            await saveCapture(card);
+            renderGallery();
+        }
+
+        function renderGallery() {
+            const container = document.getElementById('cardsContainer');
+            document.getElementById('cardCount').textContent = captures.length;
+            updateStorageUI();
+            
+            if (captures.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div>No captures yet</div>
+                    </div>
+                `;
+                updateUploadUI();
+                return;
+            }
+            
+            const cardsHTML = captures.map((card) => {
+                const keywords = card.keywords ? card.keywords.split(',').map(k => k.trim()).filter(Boolean) : [];
+                const moistureTxt = card.soil_moisture != null
+                    ? moistureShortLabel(card.soil_moisture) + ' (' + card.soil_moisture + '/5)'
+                    : null;
+                const cropTxt = card.crop || null;
+                const bbchTxt = card.bbch != null ? 'Stage ' + card.bbch : null;
+                const uploadBadge = card.uploaded
+                    ? '<span style="font-size:0.6875rem;color:var(--accent);">✓ Shared</span>'
+                    : card.skip_upload
+                        ? '<span style="font-size:0.6875rem;color:var(--error);">⊘ Skip upload</span>'
+                        : '<span style="font-size:0.6875rem;color:var(--text-light);">● Not shared</span>';
+                return `
+                    <div class="card">
+                        <div class="card-image-wrapper" onclick="toggleCardView('${card.card_id}')">
+                            <img src="${card._originalUrl}" class="card-image" data-card-id="${card.card_id}" data-view="original" alt="Card">
+                            <div class="card-overlay-badge">tap to toggle</div>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-stats">
+                                <div class="card-percentage">${card.percentage.toFixed(1)}%</div>
+                                <div>
+                                    <div class="card-meta">📅 ${formatTimestamp(card.timestamp)}</div>
+                                    <div class="card-meta">📍 ${card.location ? `${card.location.latitude.toFixed(8)}, ${card.location.longitude.toFixed(8)}` : 'No GPS'}</div>
+                                    ${cropTxt ? '<div class="card-meta">&#127793; ' + escapeHtml(cropTxt) + '</div>' : ''}
+                                    ${bbchTxt ? '<div class="card-meta">&#127807; ' + bbchTxt + '</div>' : ''}
+                                    ${moistureTxt ? '<div class="card-meta">💧 ' + moistureTxt + '</div>' : ''}
+                                </div>
+                            </div>
+                            ${card.comments ? `<div class="card-comment"><span style="font-size:0.7rem;color:var(--text-light);font-weight:500;">Comments: </span>${escapeHtml(card.comments)}</div>` : ''}
+                            ${keywords.length > 0 ? `
+                                <div class="card-keywords">
+                                    <span style="font-size:0.7rem;color:var(--text-light);font-weight:500;">Keywords: </span>${keywords.map(k => `<span class="keyword-tag">${escapeHtml(k)}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                            <div class="card-actions" style="justify-content:space-between;align-items:center;">
+                                ${uploadBadge}
+                                <div style="display:flex;gap:0.5rem;">
+                                    ${!card.uploaded ? `<button class="card-btn" style="${card.skip_upload ? 'color:var(--error);border-color:var(--error);' : ''}" onclick="toggleSkipUpload('${card.card_id}')">${card.skip_upload ? 'Include' : 'Skip'}</button>` : ''}
+                                    <button class="card-btn" onclick="editCard('${card.card_id}')">Edit</button>
+                                    <button class="card-btn" onclick="downloadCard('${card.card_id}')">Download</button>
+                                    <button class="card-btn delete" onclick="deleteCard('${card.card_id}')">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.innerHTML = cardsHTML;
+            updateUploadUI();
+        }
+        
+        window.toggleCardView = function(card_id) {
+            const card = captures.find(c => c.card_id === card_id);
+            if (!card) return;
+
+            const imgElement = document.querySelector(`.card-image[data-card-id="${card_id}"]`);
+            if (!imgElement) return;
+
+            const currentView = imgElement.dataset.view || 'original';
+
+            if (currentView === 'original') {
+                imgElement.src = card._classifiedUrl || card._originalUrl;
+                imgElement.dataset.view = 'mask';
+            } else {
+                imgElement.src = card._originalUrl;
+                imgElement.dataset.view = 'original';
+            }
+        };
+        
+        const editKeywordInput = document.getElementById('editKeywordInput');
+        const editSelectedKeywordsDiv = document.getElementById('editSelectedKeywords');
+        const editKeywordCounter = document.getElementById('editKeywordCounter');
+        
+        function updateEditKeywordCounter() {
+            editKeywordCounter.textContent = `${editKeywords.length}/${MAX_KEYWORDS}`;
+            if (editKeywords.length >= MAX_KEYWORDS) {
+                editKeywordCounter.classList.add('limit-reached');
+                editKeywordInput.disabled = true;
+                editKeywordInput.placeholder = 'Maximum keywords reached';
+            } else {
+                editKeywordCounter.classList.remove('limit-reached');
+                editKeywordInput.disabled = false;
+                editKeywordInput.placeholder = 'Type keyword and press Enter';
+            }
+        }
+        
+        function renderEditSelectedKeywords() {
+            editSelectedKeywordsDiv.innerHTML = '';
+            editKeywords.forEach((kw) => {
+                const pill = document.createElement('div');
+                pill.className = 'keyword-pill';
+
+                const text = document.createElement('span');
+                text.textContent = kw;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '×';
+                btn.addEventListener('click', () => removeEditKeyword(kw));
+
+                pill.appendChild(text);
+                pill.appendChild(btn);
+                editSelectedKeywordsDiv.appendChild(pill);
+            });
+            updateEditKeywordCounter();
+        }
+        
+        window.addEditKeyword = function(keyword) {
+            const kw = keyword.trim().toLowerCase();
+            if (kw && !editKeywords.includes(kw) && editKeywords.length < MAX_KEYWORDS) {
+                editKeywords.push(kw);
+                savedKeywords = [kw, ...savedKeywords.filter(k => k !== kw)].slice(0, MAX_SAVED_KW);
+                localStorage.setItem('canopeo-field_keywords', JSON.stringify(savedKeywords));
+                renderEditSelectedKeywords();
+                renderSuggestedKeywords();
+            }
+        };
+        
+        window.removeEditKeyword = function(keyword) {
+            editKeywords = editKeywords.filter(kw => kw !== keyword);
+            renderEditSelectedKeywords();
+            renderSuggestedKeywords();
+        };
+        
+        editKeywordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const keyword = editKeywordInput.value.trim();
+                if (keyword && editKeywords.length < MAX_KEYWORDS) {
+                    addEditKeyword(keyword);
+                    editKeywordInput.value = '';
+                }
+            }
+        });
+        
+        window.editCard = function(card_id) {
+            const card = captures.find(c => c.card_id === card_id);
+            if (!card) return;
+            
+            editingCardId = card_id;
+            // Snapshot annotation fields — used after save to detect what changed
+            editingCardSnapshot = {
+                comments:     card.comments     || '',
+                keywords:     card.keywords     || '',
+                soil_moisture: card.soil_moisture != null ? card.soil_moisture : null,
+                crop:         card.crop          || null,
+                bbch:         card.bbch          != null ? card.bbch          : null,
+            };
+            document.getElementById('editComments').value = card.comments || '';
+            
+            // Parse keywords
+            editKeywords = card.keywords ? card.keywords.split(',').map(k => k.trim()).filter(Boolean) : [];
+            renderEditSelectedKeywords();
+            renderSuggestedKeywords();
+
+            if (card.soil_moisture != null) {
+                onEditMoistureInput(card.soil_moisture);
+            } else { clearEditMoisture(); }
+
+            if (card.bbch != null) { onEditBbchInput(card.bbch); } else { clearEditBbch(); }
+            if (card.crop) { commitEditCrop(card.crop); } else { clearEditCrop(); }
+            renderCropSuggestions('editCropSuggestions', 'editCropInput', commitEditCrop, card.crop || null);
+
+            document.getElementById('editModal').classList.add('active');
+        };
+        
+        function dismissEditModal() {
+            document.getElementById('editModal').classList.remove('active');
+            editingCardId = null;
+            editingCardSnapshot = null;
+            editKeywords = [];
+            clearEditMoisture();
+            clearEditBbch();
+            clearEditCrop();
+        }
+        document.getElementById('closeEditModal').addEventListener('click', dismissEditModal);
+        document.getElementById('cancelEdit').addEventListener('click', dismissEditModal);
+        
+        document.getElementById('saveEdit').addEventListener('click', async () => {
+            if (editingCardId !== null) {
+                const card = captures.find(c => c.card_id === editingCardId);
+                if (card) {
+                    card.comments      = document.getElementById('editComments').value;
+                    card.keywords      = editKeywords.join(', ');
+                    card.soil_moisture = selectedEditMoisture;
+                    card.crop          = selectedEditCrop;
+                    card.bbch          = selectedEditBbch;
+                    
+                    try {
+                        await saveCapture(card);
+                        // Card was mutated in-place in captures array
+                        renderGallery();
+
+                        // If already uploaded, send only changed annotation fields to server
+                        if (card.uploaded && editingCardSnapshot) {
+                            const patch = {};
+                            if (card.comments !== editingCardSnapshot.comments)
+                                patch.comments = card.comments || null;
+                            const kwNow = card.keywords || '';
+                            if (kwNow !== editingCardSnapshot.keywords)
+                                patch.keywords = kwNow;
+                            const smNow = card.soil_moisture != null ? card.soil_moisture : null;
+                            if (smNow !== editingCardSnapshot.soil_moisture)
+                                patch.soil_moisture = smNow;
+                            const cropNow = card.crop || null;
+                            if (cropNow !== editingCardSnapshot.crop)
+                                patch.crop = cropNow;
+                            const bbchNow = card.bbch != null ? card.bbch : null;
+                            if (bbchNow !== editingCardSnapshot.bbch)
+                                patch.bbch = bbchNow;
+
+                            if (Object.keys(patch).length > 0) {
+                                const patchUrl = getUploadUrl();
+                                const patchToken = (uploadTokenInput?.value || '').trim();
+                                if (patchUrl && patchToken) {
+                                    try {
+                                        const patchBase = patchUrl.replace(/\/cards$/, '');
+                                        const pRes = await fetch(`${patchBase}/cards/${card.card_id}`, {
+                                            method: 'PATCH',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${patchToken}`
+                                            },
+                                            body: JSON.stringify(patch)
+                                        });
+                                        if (pRes.ok) {
+                                            showToast('Card updated locally and on server', 'success');
+                                        } else {
+                                            showToast('Saved locally — server update failed', 'error');
+                                        }
+                                    } catch (_) {
+                                        showToast('Saved locally — server unreachable', 'error');
+                                    }
+                                } else {
+                                    showToast('Card updated', 'success');
+                                }
+                            } else {
+                                showToast('No changes', 'success');
+                            }
+                        } else {
+                            showToast('Card updated', 'success');
+                        }
+                    } catch (error) {
+                        console.error('Error updating card:', error);
+                        showToast('Error updating card', 'error');
+                    }
+                }
+            }
+            dismissEditModal();
+        });
+        
+        window.downloadCard = function(card_id) {
+            const card = captures.find(c => c.card_id === card_id);
+            if (!card) return;
+            
+            // Download original image
+            const originalLink = document.createElement('a');
+            originalLink.download = `canopeo-field_${card.card_id}_original.jpg`;
+            originalLink.href = card._originalUrl;
+            originalLink.click();
+            
+            // Download classified mask
+            setTimeout(() => {
+                const classifiedLink = document.createElement('a');
+                classifiedLink.download = `canopeo-field_${card.card_id}_classified.png`;
+                classifiedLink.href = card._classifiedUrl || card._originalUrl;
+                classifiedLink.click();
+            }, 300);
+            
+            showToast('Images downloaded', 'success');
+        };
+        
+        window.deleteCard = async function(card_id) {
+            if (!confirm('Delete this card?')) return;
+            
+            try {
+                await deleteCapture(card_id);
+                captures = captures.filter(c => c.card_id !== card_id);
+                renderGallery();
+                updateMap();
+                showToast('Card deleted', 'success');
+            } catch (error) {
+                console.error('Error deleting card:', error);
+                showToast('Error deleting card', 'error');
+            }
+        };
+        
+        function exportCsv() {
+            if (captures.length === 0) return;
+            
+            let csv = 'ID,Timestamp,Latitude,Longitude,Crop Cover (%),Algorithm,R/G Ratio,B/G Ratio,Soil Moisture (0-5),Crop,Stage,Comments,Keywords\n';
+            
+            captures.forEach(c => {
+                const row = [
+                    c.card_id,
+                    c.timestamp,
+                    c.location ? c.location.latitude : '',
+                    c.location ? c.location.longitude : '',
+                    c.percentage.toFixed(1),
+                    c.algorithm || 'canopeo',
+                    c.rg_ratio != null ? c.rg_ratio : '',
+                    c.bg_ratio != null ? c.bg_ratio : '',
+                    c.soil_moisture != null ? c.soil_moisture : '',
+                    c.crop ? `"${c.crop.replace(/"/g, '""')}"` : '',
+                    c.bbch != null ? c.bbch : '',
+                    `"${(c.comments || '').replace(/"/g, '""')}"`,
+                    `"${c.keywords || ''}"`
+                ];
+                csv += row.join(',') + '\n';
+            });
+            
+            downloadFile(csv, `canopeo-field_export_${Date.now()}.csv`, 'text/csv');
+            showToast('CSV exported', 'success');
+        }
+        
+        function exportJson() {
+            if (captures.length === 0) return;
+            
+            const exportData = captures.map(({ originalImage, classifiedImage, originalBlob, classifiedBlob, _originalUrl, _classifiedUrl, ...rest }) => rest);
+            const json = JSON.stringify(exportData, null, 2);
+            downloadFile(json, `canopeo-field_export_${Date.now()}.json`, 'application/json');
+            showToast('JSON exported', 'success');
+        }
+        
+        function clearAll() {
+            if (!confirm('Clear all captures?')) return;
+            
+            clearAllCaptures().then(() => {
+                captures = [];
+                renderGallery();
+                updateMap();
+                showToast('All cleared', 'success');
+            }).catch(error => {
+                console.error('Error clearing:', error);
+                showToast('Error clearing', 'error');
+            });
+        }
+        
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function formatTimestamp(iso) {
+            const date = new Date(iso);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function showToast(message, type = 'success', duration = type === 'success' ? 4000 : 2500) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), duration);
+        }
+
+        function makeObservationId(location = null) {
+            const now = new Date();
+            const ts = now.toISOString().replace(/[-:.TZ]/g, '');
+            const lat = location && Number.isFinite(location.latitude)
+                ? location.latitude.toFixed(5).replace('-', 'm').replace('.', 'p')
+                : 'na';
+            const lon = location && Number.isFinite(location.longitude)
+                ? location.longitude.toFixed(5).replace('-', 'm').replace('.', 'p')
+                : 'na';
+            const rand = Math.random().toString(36).slice(2, 8);
+            return `obs_${ts}_${lat}_${lon}_${rand}`;
+        }
+
+        function getUploadUrl() {
+            const serverInput = document.getElementById('uploadServerInput');
+            const base = ((serverInput && serverInput.value) || localStorage.getItem(UPLOAD_SERVER_KEY) || '').trim().replace(/\/$/, '');
+            if (!base) return null;
+
+            let parsed;
+            try {
+                parsed = new URL(base);
+            } catch (_) {
+                return null;
+            }
+
+            const isLocalhost = ['localhost', '127.0.0.1'].includes(parsed.hostname);
+            if (parsed.protocol !== 'https:' && !isLocalhost) {
+                showToast('Use HTTPS for remote uploads', 'error');
+                return null;
+            }
+
+            return `${parsed.origin}${parsed.pathname.replace(/\/$/, '')}/cards`;
+        }
+
+        async function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = () => reject(reader.error);
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        async function buildUploadPayload(card) {
+            const username = (uploadUsernameInput?.value || '').trim() || null;
+            const token = (uploadTokenInput?.value || '').trim() || null;
+
+            return {
+                card_id: card.card_id,
+                timestamp: card.timestamp,
+                location: card.location ?? null,
+                percentage: card.percentage ?? null,
+                model: card.model ?? null,
+                comments: card.comments || null,
+                keywords: card.keywords || '',
+                soil_moisture: card.soil_moisture != null ? card.soil_moisture : null,
+                crop: card.crop || null,
+                bbch: card.bbch != null ? card.bbch : null,
+                username: username,
+                token: token,
+                originalImage: await blobToBase64(card.originalBlob),
+                classifiedImage: card.classifiedBlob ? await blobToBase64(card.classifiedBlob) : null
+            };
+        }
+        
+
+        // ── QR SCANNER ───────────────────────────────────────────────────────────
+        let qrStream = null;
+        let qrAnimFrame = null;
+
+        async function startQrScanner() {
+            if (!window.jsQR) { showToast('QR library not loaded', 'error'); return; }
+            const overlay = document.getElementById('qr-modal-overlay');
+            const video   = document.getElementById('qr-video');
+            const status  = document.getElementById('qr-status');
+            status.textContent = 'Starting camera…';
+            overlay.classList.add('active');
+            try {
+                qrStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+                video.srcObject = qrStream;
+                await video.play();
+                status.textContent = 'Point camera at QR code';
+                scanQrFrame();
+            } catch (err) {
+                stopQrScanner();
+                showToast('Camera access denied', 'error');
+            }
+        }
+
+        function scanQrFrame() {
+            const video  = document.getElementById('qr-video');
+            if (!video || video.readyState < video.HAVE_ENOUGH_DATA) {
+                qrAnimFrame = requestAnimationFrame(scanQrFrame);
+                return;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width  = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, canvas.width, canvas.height, {
+                inversionAttempts: 'dontInvert'
+            });
+            if (code && code.data) {
+                applyQrData(code.data);
+            } else {
+                qrAnimFrame = requestAnimationFrame(scanQrFrame);
+            }
+        }
+
+        function applyQrData(raw) {
+            stopQrScanner();
+            // Parse 'Server: ...', 'Username: ...', 'Token: ...' lines
+            function extract(label) {
+                const match = raw.match(new RegExp(label + '\\s*([^\\n\\r]+)', 'i'));
+                return match ? match[1].trim() : null;
+            }
+            const server = extract('Server:');
+            const user   = extract('Username:');
+            const token  = extract('Token:');
+            if (!server && !user && !token) {
+                showToast('QR code not recognised — try the setup message instead', 'error');
+                return;
+            }
+            if (server) {
+                localStorage.setItem(UPLOAD_SERVER_KEY, server);
+                const el = document.getElementById('uploadServerInput');
+                if (el) el.value = server;
+            }
+            if (user) {
+                localStorage.setItem(UPLOAD_USERNAME_KEY, user);
+                const el = document.getElementById('uploadUsernameInput');
+                if (el) el.value = user;
+            }
+            if (token) {
+                localStorage.setItem(UPLOAD_TOKEN_KEY, token);
+                const el = document.getElementById('uploadUrlInput');
+                if (el) el.value = token;
+            }
+            updateUploadUI();
+            showToast('Settings applied from QR code ✓', 'success');
+        }
+
+        function stopQrScanner() {
+            if (qrAnimFrame) { cancelAnimationFrame(qrAnimFrame); qrAnimFrame = null; }
+            if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+            const video = document.getElementById('qr-video');
+            if (video) { video.srcObject = null; }
+            const overlay = document.getElementById('qr-modal-overlay');
+            if (overlay) overlay.classList.remove('active');
+        }
+
+        // ── TERMS & CONDITIONS ────────────────────────────────────────────────
+
+        const APP_TC_VERSION     = '1.0';
+        const APP_TC_STORAGE_KEY = 'canopeo-field_tc_accepted_version';
+
+        function tcCheckAndShow() {
+            const accepted = localStorage.getItem(APP_TC_STORAGE_KEY);
+            document.getElementById('tc-version-lbl').textContent = 'Version ' + APP_TC_VERSION;
+            if (accepted === APP_TC_VERSION) {
+                startApp();
+            } else {
+                // Show the overlay only when T&C have not been accepted
+                document.getElementById('tc-overlay').classList.remove('hidden');
+            }
+        }
+
+        function tcAccept() {
+            localStorage.setItem(APP_TC_STORAGE_KEY, APP_TC_VERSION);
+            document.getElementById('tc-overlay').classList.add('hidden');
+            startApp();
+        }
+
+        function tcDecline() {
+            const box = document.querySelector('.tc-box');
+            box.innerHTML = `
+              <div class="tc-declined">
+                <h2>Terms Declined</h2>
+                <p>You must accept the Terms of Use to use Canopeo-Field.</p>
+                <p style="margin-top:0.75rem;">Please close this window or tab.</p>
+              </div>`;
+        }
+
+        // ── APP INIT (only called after T&C accepted) ─────────────────────────
+        function startApp() {
+            initDB().then(async () => {
+                captures = await getAllCaptures();
+                renderGallery();
+            }).catch(error => {
+                console.error('Error initializing database:', error);
+                showToast('Error loading data', 'error');
+            }).finally(() => {
+                // Run regardless of DB outcome so the rest of the app stays usable
+                try { initMap(); } catch(e) { console.warn('Map init failed:', e); }
+                try { initGeojsonControls(); } catch(e) { console.warn('GeoJSON controls init failed:', e); }
+                startGPS();
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('/app/sw.js', { scope: '/app/' }).catch(err => console.warn('SW registration failed:', err));
+                }
+            });
+        }
+
+        // MAP state — declared before tcCheckAndShow so startApp() can use them
+        let map = null;
+        let markers = [];
+        let fieldBoundaryLayer = null;
+        const FIELD_GEOJSON_STORAGE_KEY = 'canopeo-field_field_boundary_geojson';
+
+        // Run T&C check immediately — startApp() is called inside if/when accepted.
+        tcCheckAndShow();
+
+        
+        function initMap() {
+            if (typeof L === 'undefined') {
+                console.warn('Leaflet not loaded — map unavailable');
+                document.getElementById('map').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-light);font-size:0.875rem;">Map unavailable (offline)</div>';
+                return;
+            }
+            if (!map) {
+                map = L.map('map').setView([39.8283, -98.5795], 4); // Center of USA
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+            
+
+                // Load persisted field boundary (optional)
+                loadFieldBoundaryFromStorage();
+                updateMap();
+            }
+        }
+        
+
+        function clearFieldBoundary() {
+            if (fieldBoundaryLayer) {
+                fieldBoundaryLayer.remove();
+                fieldBoundaryLayer = null;
+            }
+            localStorage.removeItem(FIELD_GEOJSON_STORAGE_KEY);
+            const btnClear = document.getElementById('btnClearGeojson');
+            if (btnClear) btnClear.disabled = true;
+        }
+
+        function setFieldBoundary(geojson) {
+            if (!map) return;
+
+            // Replace existing layer (single boundary only)
+            if (fieldBoundaryLayer) {
+                fieldBoundaryLayer.remove();
+                fieldBoundaryLayer = null;
+            }
+
+            // Simple style for boundaries
+            fieldBoundaryLayer = L.geoJSON(geojson, {
+                style: () => ({
+                    color: '#7c3aed',   // vibrant purple
+                    weight: 2,
+                    opacity: 0.9,
+                    fillOpacity: 0.05
+                }),
+                pointToLayer: (feature, latlng) => {
+                    // If user supplies points, render as small circles
+                    return L.circleMarker(latlng, {
+                        radius: 4,
+                        color: '#7c3aed',
+                        weight: 2,
+                        opacity: 0.9,
+                        fillOpacity: 0.3
+                    });
+                }
+            }).addTo(map);
+
+            // Persist raw GeoJSON string
+            try {
+                localStorage.setItem(FIELD_GEOJSON_STORAGE_KEY, JSON.stringify(geojson));
+            } catch (e) {
+                console.warn('Could not persist field boundary GeoJSON:', e);
+            }
+
+            // Fit bounds if possible
+            try {
+                const b = fieldBoundaryLayer.getBounds();
+                if (b.isValid()) map.fitBounds(b.pad(0.08));
+            } catch (_) {}
+
+            const btnClear = document.getElementById('btnClearGeojson');
+            if (btnClear) btnClear.disabled = false;
+        }
+
+        function loadFieldBoundaryFromStorage() {
+            const btnClear = document.getElementById('btnClearGeojson');
+            if (btnClear) btnClear.disabled = true;
+
+            const raw = localStorage.getItem(FIELD_GEOJSON_STORAGE_KEY);
+            if (!raw) return;
+
+            try {
+                const geojson = JSON.parse(raw);
+                setFieldBoundary(geojson);
+            } catch (e) {
+                console.warn('Stored field boundary GeoJSON is invalid. Clearing.', e);
+                localStorage.removeItem(FIELD_GEOJSON_STORAGE_KEY);
+            }
+        }
+
+        function initGeojsonControls() {
+            const input = document.getElementById('geojsonInput');
+            const btnUpload = document.getElementById('btnUploadGeojson');
+            const btnClear = document.getElementById('btnClearGeojson');
+
+            if (!input || !btnUpload || !btnClear) return;
+
+            btnUpload.addEventListener('click', () => input.click());
+
+            btnClear.addEventListener('click', () => {
+                const ok = confirm('Remove the current field boundary layer?');
+                if (!ok) return;
+                clearFieldBoundary();
+            });
+
+            input.addEventListener('change', async (e) => {
+                const file = e.target.files && e.target.files[0];
+                input.value = '';
+                if (!file) return;
+
+                try {
+                    const text = await file.text();
+
+                    // Basic size sanity (simple GeoJSON < ~1000 points should be small)
+                    if (text.length > 2_000_000) { // ~2 MB
+                        showToast('GeoJSON is too large for this simple viewer', 'error');
+                        return;
+                    }
+
+                    const geojson = JSON.parse(text);
+
+                    // Minimal validation
+                    const okType =
+                        geojson &&
+                        (geojson.type === 'FeatureCollection' ||
+                         geojson.type === 'Feature' ||
+                         geojson.type === 'Polygon' ||
+                         geojson.type === 'MultiPolygon' ||
+                         geojson.type === 'LineString' ||
+                         geojson.type === 'MultiLineString' ||
+                         geojson.type === 'Point' ||
+                         geojson.type === 'MultiPoint');
+
+                    if (!okType) {
+                        showToast('Unsupported GeoJSON type', 'error');
+                        return;
+                    }
+
+                    if (!map) {
+                        // If map not initialized yet, boundary will be loaded when map initializes
+                        localStorage.setItem(FIELD_GEOJSON_STORAGE_KEY, JSON.stringify(geojson));
+                        showToast('Boundary saved. Open the map to view it.', 'success');
+                        return;
+                    }
+
+                    setFieldBoundary(geojson);
+                    showToast('Field boundary loaded', 'success');
+                } catch (err) {
+                    console.error(err);
+                    showToast('Invalid GeoJSON file', 'error');
+                }
+            });
+        }
+
+        function getMarkerColor(percentage) {
+            // Color gradient from red (0%) to yellow (50%) to green (100%)
+            if (percentage < 50) {
+                // Red to yellow
+                const ratio = percentage / 50;
+                const r = 255;
+                const g = Math.floor(111 + (144 * ratio)); // 111 to 255
+                return `rgb(${r}, ${g}, 0)`;
+            } else {
+                // Yellow to green
+                const ratio = (percentage - 50) / 50;
+                const r = Math.floor(255 - (198 * ratio)); // 255 to 57
+                const g = 255;
+                const b = Math.floor(20 * ratio); // 0 to 20
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+        }
+        
+        function updateMap() {
+            if (!map) return;
+            
+            // Clear existing markers
+            markers.forEach(marker => marker.remove());
+            markers = [];
+            
+            // Filter captures with valid GPS
+            const capturesWithGPS = captures.filter(c => c.location && Number.isFinite(c.location.latitude) && Number.isFinite(c.location.longitude));
+            
+            document.getElementById('mapCardCount').textContent = capturesWithGPS.length;
+            
+            if (capturesWithGPS.length === 0) {
+                map.setView([39.8283, -98.5795], 4);
+                return;
+            }
+            
+            // Add markers for each capture
+            capturesWithGPS.forEach(capture => {
+                const color = getMarkerColor(capture.percentage);
+                
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: ${color}; width: 24px; height: 24px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+                
+                const marker = L.marker([capture.location.latitude, capture.location.longitude], { icon })
+                    .addTo(map);
+                
+                // Create popup content
+                const popupContent = `
+                    <div style="min-width: 150px;">
+                        <img src="${capture._originalUrl}" class="map-popup-image" style="max-width: 150px; border-radius: 4px; margin-bottom: 0.5rem;">                        
+                        <div class="map-popup-percentage">${capture.percentage.toFixed(1)}%</div>
+                        <div class="map-popup-meta">📅 ${formatTimestamp(capture.timestamp)}</div>
+                        ${capture.comments ? `<div class="map-popup-meta" style="margin-top: 0.5rem;">${escapeHtml(capture.comments)}</div>` : ''}
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                markers.push(marker);
+            });
+            
+            // Fit map to show all markers
+            if (capturesWithGPS.length > 0) {
+                const bounds = L.latLngBounds(capturesWithGPS.map(c => [c.location.latitude, c.location.longitude]));
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }
+        
+        // Update map when switching to map screen
+        swiper.on('slideChange', function() {
+            if (this.activeIndex === 2) { // Map screen
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                        updateMap();
+                    }
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
