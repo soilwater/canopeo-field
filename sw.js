@@ -1,15 +1,17 @@
-const CACHE_NAME = "croplens-v1";
+const CACHE_NAME = "canopeo-field-v1";
 
 // Critical shell assets — if ANY of these fail, the SW won't install.
 const SHELL_ASSETS = [
-  "/app/index.html",
+  "/index.html",
 ];
 
 // Icon assets cached lazily on first fetch.
 const LAZY_ASSETS = [
-  "/app/icons/crop_lens_icon.png",
-  "/app/icons/crop_lens_icon_192.png",
-  "/app/icons/crop_lens_icon_512.png",
+  "/icons/icon.ico",
+  "/icons/icon_64.png",
+  "/icons/icon_128.png",
+  "/icons/icon_256.png",
+  "/icons/icon_512.png",
 ];
 
 // Model file uses stale-while-revalidate.
@@ -20,7 +22,6 @@ const MODEL_ASSETS = [
 // CDN libraries — cached with stale-while-revalidate after first fetch.
 // These are the main source of startup latency on repeat launches.
 const CDN_ASSETS = [
-  "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js",
   "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js",
   "https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css",
   "https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js",
