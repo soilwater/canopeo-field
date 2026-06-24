@@ -1,48 +1,43 @@
 // Bump CACHE_VERSION whenever you deploy new assets.
-// The old cache is deleted on activate, forcing a fresh fetch of everything.
 const CACHE_VERSION = "v2";
 const CACHE_NAME    = `canopeo-field-${CACHE_VERSION}`;
 
+// Base path — must match the GitHub Pages subdirectory.
+const BASE = "/canopeo-field";
+
 // ── Shell assets ──────────────────────────────────────────────────────────────
-// Fetched and cached at install time. If any fail, the SW won't install,
-// preventing a broken offline shell.
+// Fetched and cached at install time. If any fail, the SW won't install.
 const SHELL_ASSETS = [
-  "/index.html",
-  "/manifest.json",
+  `${BASE}/`,
+  `${BASE}/index.html`,
+  `${BASE}/manifest.json`,
 ];
 
-// ── CDN libraries ─────────────────────────────────────────────────────────────
-// Served stale-while-revalidate so the app starts instantly from cache
-// and quietly refreshes in the background.
+// ── Icon assets ───────────────────────────────────────────────────────────────
+// Cached lazily on first fetch (not required for install).
+const ICON_PATHS = [
+  `${BASE}/icons/icon.ico`,
+  `${BASE}/icons/icon_64.png`,
+  `${BASE}/icons/icon_128.png`,
+  `${BASE}/icons/icon_256.png`,
+  `${BASE}/icons/icon_512.png`,
+];
+
+// ── CDN origins ───────────────────────────────────────────────────────────────
 const CDN_ORIGINS = [
   "https://cdn.jsdelivr.net",
   "https://unpkg.com",
 ];
 
-// ── Google Fonts ──────────────────────────────────────────────────────────────
-// Cached with stale-while-revalidate so the app works offline with its chosen
-// typeface. Font CSS + actual font binaries both go through this path.
+// ── Google Fonts origins ──────────────────────────────────────────────────────
 const FONTS_ORIGINS = [
   "https://fonts.googleapis.com",
   "https://fonts.gstatic.com",
 ];
 
-// ── Icon assets ───────────────────────────────────────────────────────────────
-// Not required at install — cached lazily on first fetch.
-const ICON_PATHS = [
-  "/icons/icon.ico",
-  "/icons/icon_64.png",
-  "/icons/icon_128.png",
-  "/icons/icon_256.png",
-  "/icons/icon_512.png",
-];
-
 // ── Install ───────────────────────────────────────────────────────────────────
 self.addEventListener("install", event => {
-  // skipWaiting() makes the new SW take over immediately instead of waiting
-  // for all existing tabs to close.
   self.skipWaiting();
-
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(SHELL_ASSETS))
@@ -53,9 +48,7 @@ self.addEventListener("install", event => {
 self.addEventListener("activate", event => {
   event.waitUntil(
     Promise.all([
-      // Claim all open clients so they switch to this SW without a reload.
       clients.claim(),
-      // Delete every cache that isn't this version.
       caches.keys().then(keys =>
         Promise.all(keys.map(key => {
           if (key !== CACHE_NAME) return caches.delete(key);
@@ -71,13 +64,13 @@ self.addEventListener("fetch", event => {
 
   const url = new URL(event.request.url);
 
-  // CDN libraries: stale-while-revalidate (fast start, background refresh)
+  // CDN libraries: stale-while-revalidate
   if (CDN_ORIGINS.some(o => url.origin === o)) {
     event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
 
-  // Google Fonts CSS + binaries: stale-while-revalidate
+  // Google Fonts: stale-while-revalidate
   if (FONTS_ORIGINS.some(o => url.origin === o)) {
     event.respondWith(staleWhileRevalidate(event.request));
     return;
@@ -86,33 +79,33 @@ self.addEventListener("fetch", event => {
   // Same-origin only from here on
   if (url.origin !== self.location.origin) return;
 
-  // HTML navigation requests: network-first so the user always gets a fresh
-  // shell when online; fall back to the cached shell if offline.
+  // Only handle requests under /canopeo-field/
+  if (!url.pathname.startsWith(BASE)) return;
+
+  // HTML navigations: network-first, fall back to cached shell
   if (event.request.mode === "navigate") {
-    event.respondWith(networkFirstThenCache(event.request, "/index.html"));
+    event.respondWith(networkFirstThenCache(event.request, `${BASE}/index.html`));
     return;
   }
 
-  // Icon files: lazy cache-first (fine to serve stale indefinitely)
+  // Icons: cache-first (fine to serve stale indefinitely)
   if (ICON_PATHS.some(p => url.pathname === p)) {
     event.respondWith(cacheFirstThenNetwork(event.request));
     return;
   }
 
   // manifest.json: stale-while-revalidate
-  if (url.pathname === "/manifest.json") {
+  if (url.pathname === `${BASE}/manifest.json`) {
     event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
 
-  // Anything else under the same origin: cache-first
+  // Everything else under /canopeo-field/: cache-first
   event.respondWith(cacheFirstThenNetwork(event.request));
 });
 
 // ── Strategies ────────────────────────────────────────────────────────────────
 
-// Serve from cache immediately; refresh cache in background.
-// Falls back to network on first fetch (nothing in cache yet).
 async function staleWhileRevalidate(request) {
   const cache  = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);
@@ -125,7 +118,6 @@ async function staleWhileRevalidate(request) {
     .catch(() => null);
 
   if (cached) {
-    // Kick off background refresh but don't await it
     networkPromise.catch(() => {});
     return cached;
   }
@@ -134,8 +126,6 @@ async function staleWhileRevalidate(request) {
   return fresh || new Response("Resource unavailable offline", { status: 503 });
 }
 
-// Try network first; on failure serve from cache; ultimate fallback = 503.
-// Used for HTML navigations so the user gets the latest shell when online.
 async function networkFirstThenCache(request, fallbackPath) {
   const cache = await caches.open(CACHE_NAME);
   try {
@@ -149,7 +139,6 @@ async function networkFirstThenCache(request, fallbackPath) {
   }
 }
 
-// Serve from cache; on miss fetch, cache, and return.
 async function cacheFirstThenNetwork(request) {
   const cache  = await caches.open(CACHE_NAME);
   const cached = await cache.match(request);

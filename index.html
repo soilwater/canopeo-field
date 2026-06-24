@@ -6,23 +6,26 @@
     <meta name="description" content="Measure green canopy cover and monitor crops in the field using the Canopeo algorithm.">
     <meta name="theme-color" content="#ffffff">
 
-    <!-- iOS PWA -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <!-- PWA — standard -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- PWA — iOS -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Canopeo-Field">
     <link rel="apple-touch-icon" href="icons/icon_256.png">
+    <link rel="icon" type="image/png" sizes="256x256" href="icons/icon_256.png">
+    <link rel="icon" type="image/x-icon" href="icons/icon.ico">
 
     <title>Canopeo-Field</title>
     <link rel="manifest" href="manifest.json">
 
-    <!-- Preconnect so DNS + TLS are ready before the browser requests the font -->
+    <!-- Preconnect so DNS + TLS are ready before the font request -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    
+
     <style>
         
         :root {
@@ -972,7 +975,7 @@
         .toast.info {
             background: #1565c0;
         }
-        
+
         @keyframes slideUp {
             from {
                 transform: translateX(-50%) translateY(100px);
@@ -3550,9 +3553,8 @@
                 try { initGeojsonControls(); } catch(e) { console.warn('GeoJSON controls init failed:', e); }
                 startGPS();
                 if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    navigator.serviceWorker.register('sw.js', { scope: '/canopeo-field/' })
                       .then(reg => {
-                        // Detect when a new SW has installed and is waiting
                         reg.addEventListener('updatefound', () => {
                           const newWorker = reg.installing;
                           newWorker.addEventListener('statechange', () => {
