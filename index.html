@@ -3331,8 +3331,16 @@
         
         function exportJson() {
             if (captures.length === 0) return;
-            
-            const exportData = captures.map(({ originalImage, classifiedImage, originalBlob, classifiedBlob, _originalUrl, _classifiedUrl, ...rest }) => rest);
+
+            const exportData = captures.map(({ originalImage, classifiedImage, originalBlob, classifiedBlob, _originalUrl, _classifiedUrl, ...rest }) => {
+                const cropKey = normalizeWheat((rest.crop || '').trim().toLowerCase());
+                const bbchLabels = BBCH_LABELS_CROP[cropKey] || BBCH_LABELS_GENERIC;
+                return {
+                    ...rest,
+                    soil_moisture_label: rest.soil_moisture != null ? moistureShortLabel(rest.soil_moisture) : null,
+                    bbch_label: rest.bbch != null ? (bbchLabels[rest.bbch] || null) : null
+                };
+            });
             const json = JSON.stringify(exportData, null, 2);
             downloadFile(json, `canopeo-field_export_${Date.now()}.json`, 'application/json');
             showToast('JSON exported', 'success');
