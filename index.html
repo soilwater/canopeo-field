@@ -713,6 +713,8 @@
             border-top: 1px solid var(--border);
             margin-top: 0.75rem;
             line-height: 1.4;
+            word-break: break-word;
+
         }
         
         .card-keywords {
@@ -1351,12 +1353,12 @@
             <li>Evaluation and testing</li>
           </ul>
           <p>Use by or on behalf of a for-profit entity in furtherance of commercial activities is not permitted without a separate written agreement.</p>
-          <p>Images submitted to a Canopeo-Field server must be relevant to crop and field observation. Submission of inappropriate, offensive, or unrelated content may result in the removal of the content, revocation of your upload token, and deactivation of your account.</p>
           
           <h3>3. Data You Submit</h3>
-          <p>Data stored only on your device remains entirely under your control. Uploading is optional — the app works fully offline.</p>
+          <p>The app works fully offline and data stored only on your device remains entirely under your control. Uploading is optional if you configure the upload settings.</p>
           <p>Images and observations you submit to a Canopeo-Field server will be visible on the public dashboard and licensed under <strong>CC BY-NC 4.0</strong> (Attribution, Non-Commercial). Uploaded data may be retained indefinitely for research and educational purposes, even if you later request account deletion. By submitting data you confirm you have the right to share it and grant the server operator a non-exclusive licence to store, display, and use it for research and educational purposes. Only upload images from fields where you have permission to share data publicly.</p>
-          
+          <p>Images submitted to a Canopeo-Field server must be relevant to crop and field observation. Submission of inappropriate, offensive, or unrelated content may result in the removal of the content, revocation of your upload token, and deactivation of your account.</p>
+
           <h3>4. No Warranty</h3>
           <p>Canopeo-Field is provided <strong>"as is"</strong>, without warranty of any kind. The developers make no representations about the accuracy of canopy-cover estimates or any other outputs. Do not rely on Canopeo-Field outputs for decisions with significant consequences without independent verification.</p>
 
@@ -1573,7 +1575,7 @@
                 <div class="guide-section">
                     <div class="guide-section-title">📷 Camera position</div>
                     <ul class="guide-list">
-                        <li>Hold the phone parallel to the ground, and frame the crop canopypointing straight down</li>
+                        <li>Hold the phone parallel to the ground, and frame the crop canopy pointing straight down</li>
                         <li>Keep it between waist and shoulder height (~0.8–1.5 m)</li>
                         <li>Avoid tilting — even a small angle reduces accuracy</li>
                     </ul>
@@ -1630,14 +1632,6 @@
                 <!-- Controls -->
                 <div class="form-group">
                     <div class="control-label">
-                        <span>Mask Opacity</span>
-                        <span class="control-value" id="alphaValue">0.70</span>
-                    </div>
-                    <input type="range" id="alphaSlider" min="0" max="1" step="0.05" value="0.70">
-                </div>
-
-                <div class="form-group">
-                    <div class="control-label">
                         <span>Ratio (0.95-0.98 for most conditions)</span>
                         <span class="control-value" id="rgRatioValue">0.95</span>
                     </div>
@@ -1659,7 +1653,15 @@
                         <div class="color-option original" data-color="original" title="Original pixel colors"></div>
                     </div>
                 </div>
-                
+
+                <div class="form-group">
+                    <div class="control-label">
+                        <span>Mask Opacity</span>
+                        <span class="control-value" id="alphaValue">0.70</span>
+                    </div>
+                    <input type="range" id="alphaSlider" min="0" max="1" step="0.05" value="0.70">
+                </div>
+
                 <!-- Stats -->
                 <div class="stats-display" style="margin: 1.25rem 0;">
                     <div class="stats-percentage" id="coveragePercentage">0.0%</div>
@@ -1957,7 +1959,6 @@
             alpha: 0.70,
             color: 'green',
             rgRatio: 0.95,
-            bgRatio: 0.95,
             classifiedBlob: null,
             predictions: null,  // stored after classification — reused on color/opacity changes
             imagePixels: null,  // stored pixel data for mask rendering
@@ -1987,11 +1988,11 @@
         let selectedEditMoisture = null;
 
         const MOISTURE_LABELS = [
-            'Dry (dust, air-dry soil)',              // 0
-            'Wilting point (severe stress, plants cannot extract water)',    // 1
+            'Dry (dust / air-dry soil)',              // 0
+            'Wilting point (severe stress / plants cannot extract water)',    // 1
             'Moderately dry (plants are stressed but surviving)',   // 2
-            'Moderately wet (adequate water, plants show no signs of stress)',   // 3
-            'Field capacity (optimal water, ~2-3 days after heavy rainfall)',   // 4
+            'Moderately wet (adequate water / plants show no signs of stress)',   // 3
+            'Field capacity (optimal water / ~2-3 days after heavy rainfall)',   // 4
             'Saturated (waterlogged or muddy conditions)'        // 5
         ];
 
@@ -2072,87 +2073,81 @@
         // Keys must match the lowercase, trimmed crop name stored in selectedCrop.
         // Each array has exactly 10 entries (one per button 0–9).
         const BBCH_LABELS_CROP = {
-            'winter wheat': [
-                'Germination',                   // 0
-                'Seedling (1–3 leaves)',          // 1
-                'Tillering',                      // 2
-                'Stem elongation',                // 3
-                'Booting (flag leaf sheath)',     // 4
-                'Heading / ear emergence',        // 5
-                'Flowering / anthesis',           // 6
-                'Milky grain',                    // 7
-                'Dough stage / ripening',         // 8
-                'Senescence / harvest ripe'       // 9
-            ],
             'wheat': [
-                'Germination',                   // 0
-                'Seedling (1–3 leaves)',          // 1
-                'Tillering',                      // 2
-                'Stem elongation',                // 3
-                'Booting (flag leaf sheath)',     // 4
-                'Heading / ear emergence',        // 5
-                'Flowering / anthesis',           // 6
-                'Milky grain',                    // 7
-                'Dough stage / ripening',         // 8
-                'Senescence / harvest ripe'       // 9
+                'Germination',              // 0
+                'Seedling 1–3 leaves',      // 1
+                'Tillering',                // 2
+                'Stem elongation',          // 3
+                'Booting flag leaf sheath', // 4
+                'Heading ear emergence',    // 5
+                'Flowering anthesis',       // 6
+                'Milky grain',              // 7
+                'Dough stage ripening',     // 8
+                'Senescence harvest ripe'   // 9
             ],
             'soybean': [
-                'Germination',                    // 0
-                'Cotyledons / unifoliate leaf',   // 1
-                'First trifoliate (V2)',           // 2
-                'V3–V4 vegetative',               // 3
-                'V5–V6 vegetative',               // 4
-                'R1 — first flower',              // 5
-                'R2–R3 — full flower / pod set',  // 6
-                'R4–R5 — pod fill / seed growth', // 7
-                'R6 — full seed / beginning mat.',// 8
-                'R7–R8 — maturity'                // 9
+                'Germination',              // 0
+                'VE Cotyledons emergence',  // 1
+                'V2 First trifoliate',      // 2
+                'V3–V4',                    // 3
+                'V5–V6',                    // 4
+                'R1 First flower',          // 5
+                'R2–R3 Full flower pod set',// 6
+                'R4–R5 Pod fill seed growth',// 7
+                'R6 Full seed',             // 8
+                'R7–R8 Maturity'            // 9
             ],
             'corn': [
-                'Germination / emergence',        // 0
-                'V1–V2',                          // 1
-                'V3–V4',                          // 2
-                'V5–V6',                          // 3
-                'V7–V10',                         // 4
-                'V11–VT (tassel emergence)',       // 5
-                'R1 — silking',                   // 6
-                'R2–R3 — blister / milk',         // 7
-                'R4–R5 — dough / dent',           // 8
-                'R6 — physiological maturity'     // 9
+                'Germination emergence',    // 0
+                'V1–V2',                    // 1
+                'V3–V4',                    // 2
+                'V5–V6',                    // 3
+                'V7–V10',                   // 4
+                'V11–VT Tassel emergence',  // 5
+                'R1 Silking',               // 6
+                'R2–R3 Blister milk',       // 7
+                'R4–R5 Dough dent',         // 8
+                'R6 Physiological maturity' // 9
             ],
             'cotton': [
-                'Germination / emergence',
-                'VC–V2 (2 true leaves)',
-                'V3–V5 (early vegetative)',
-                'First square (pinhead size)',
-                'Mid-squaring (candle stage)',
-                'R1 (first white flower)',
-                'Peak bloom (white/red flowers)',
-                'Early boll (fiber elongation)',
-                'First cracked boll (open bolls)',
-                'Physiological maturity'
+                'Germination emergence',    // 0
+                'VC–V2 Seedling',           // 1
+                'V3–V5 Early vegetative',   // 2
+                'First square',             // 3
+                'Mid squaring',             // 4
+                'R1 First flower',          // 5
+                'R2–R3 Peak bloom',         // 6
+                'R4–R5 Early boll',         // 7
+                'R6 First cracked boll',    // 8
+                'Physiological maturity'    // 9
             ],
             'sorghum': [
-                'Germination / emergence',        // 0
-                'V1–V2 seedling',                 // 1
-                'V3–V4',                          // 2
-                'V5–V7',                          // 3
-                'V8–V10 / flag leaf visible',     // 4
-                'Boot / head emergence',          // 5
-                'Flowering / anthesis',           // 6
-                'Soft dough / blister',           // 7
-                'Hard dough / physiological mat.',// 8
-                'Maturity / harvest'              // 9
+                'Germination emergence',    // 0
+                'V1–V2 Seedling',           // 1
+                'V3–V4',                    // 2
+                'V5–V7',                    // 3
+                'V8–V10 Flag leaf visible', // 4
+                'Boot head emergence',      // 5
+                'Flowering anthesis',       // 6
+                'R1–R2 Soft dough blister', // 7
+                'R3–R4 Hard dough',         // 8
+                'R5 Physiological maturity' // 9
             ]
         };
 
+        // Normalizes any wheat variant to the single 'wheat' key.
+        // Matches: wheat, winter wheat, spring wheat, durum wheat, hard red winter wheat, etc.
+        function normalizeWheat(crop) {
+            return /wheat/.test(crop) ? 'wheat' : crop;
+        }
+
         function getBbchLabels() {
-            const crop = (selectedCrop || '').trim().toLowerCase();
+            const crop = normalizeWheat((selectedCrop || '').trim().toLowerCase());
             return BBCH_LABELS_CROP[crop] || BBCH_LABELS_GENERIC;
         }
 
         function getEditBbchLabels() {
-            const crop = (selectedEditCrop || '').trim().toLowerCase();
+            const crop = normalizeWheat((selectedEditCrop || '').trim().toLowerCase());
             return BBCH_LABELS_CROP[crop] || BBCH_LABELS_GENERIC;
         }
 
@@ -2287,9 +2282,9 @@
 
         // ── CANOPEO CLASSIFICATION ─────────────────────────────────────────────
         // Patrignani & Ochsner (2015): a pixel is green canopy when
-        //   R/G < rgRatio  AND  B/G < bgRatio  AND  2G - R - B > 0
+        //   R/G < ratio  AND  B/G < ratio  AND  2G - R - B > 0
         // Returns Uint8Array where 1 = canopy, 0 = background
-        function runCanopeoClassification(imageData, rgRatio, bgRatio) {
+        function runCanopeoClassification(imageData, ratio) {
             const data = imageData.data;
             const totalPixels = imageData.width * imageData.height;
             const predictions = new Uint8Array(totalPixels);
@@ -2297,7 +2292,7 @@
                 const R = data[i];
                 const G = data[i + 1];
                 const B = data[i + 2];
-                if (G > 0 && (R / G) < rgRatio && (B / G) < bgRatio && (2 * G - R - B) > 0) {
+                if (G > 0 && (R / G) < ratio && (B / G) < ratio && (2 * G - R - B) > 20) {
                     predictions[px] = 1;
                 }
             }
@@ -2382,7 +2377,6 @@
             currentCapture.color = 'green';
             const _ratio = parseFloat(document.getElementById('rgRatioSlider').value);
             currentCapture.rgRatio = _ratio;
-            currentCapture.bgRatio = _ratio;
             resetMoistureSelector();
             resetBbchSelector();
             resetCropSelector();
@@ -2480,9 +2474,7 @@
         document.getElementById('rgRatioSlider').addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             currentCapture.rgRatio = val;
-            currentCapture.bgRatio = val;
             document.getElementById('rgRatioValue').textContent = val.toFixed(2);
-            // Re-run full classification since threshold changed
             if (currentCapture.imageUrl) runClassification();
         });
 
@@ -2505,8 +2497,7 @@
 
                 const predictions = runCanopeoClassification(
                     imageData,
-                    currentCapture.rgRatio,
-                    currentCapture.bgRatio
+                    currentCapture.rgRatio
                 );
 
                 // Store results — renderMask() reuses these on every color/opacity/mode change
@@ -2762,9 +2753,7 @@
                 timestamp: currentCapture.timestamp,
                 location: currentCapture.location,
                 percentage: currentCapture.percentage,
-                algorithm: 'canopeo',
-                rg_ratio: currentCapture.rgRatio,
-                bg_ratio: currentCapture.bgRatio,
+                ratio: currentCapture.rgRatio,
                 alpha: currentCapture.alpha,
                 color: currentCapture.color,
                 comments: metaComments.value,
@@ -2867,6 +2856,8 @@
             return captures.filter(c => !c.uploaded && !c.skip_upload);
         }
 
+        let credentialsOk = false;
+
         function updateUploadUI() {
             if (!uploadAllBtn) return;
             const serverVal   = (uploadServerInput && uploadServerInput.value || localStorage.getItem(UPLOAD_SERVER_KEY) || '').trim();
@@ -2875,7 +2866,7 @@
             const hasServer   = serverVal.length > 0;
             const pending     = pendingCaptures().length;
 
-            const credentialsOk = hasServer && usernameVal && tokenVal;
+            credentialsOk = hasServer && usernameVal && tokenVal;
             uploadAllBtn.style.display = credentialsOk ? 'inline-flex' : 'none';
             uploadAllBtn.disabled = pending === 0;
             uploadAllBtn.textContent = pending === 0 ? '⬆ Upload' : `⬆ Upload (${pending})`;
@@ -2906,7 +2897,7 @@
                 const url = getUploadUrl();
 
                 if (!url) {
-                    showToast('Enter a server URL in the gallery upload panel', 'error');
+                    showToast('Enter a server URL in Upload Settings', 'error');
                     return;
                 }
 
@@ -3014,15 +3005,22 @@
             const cardsHTML = captures.map((card) => {
                 const keywords = card.keywords ? card.keywords.split(',').map(k => k.trim()).filter(Boolean) : [];
                 const moistureTxt = card.soil_moisture != null
-                    ? moistureShortLabel(card.soil_moisture) + ' (' + card.soil_moisture + '/5)'
+                    ? moistureShortLabel(card.soil_moisture)
                     : null;
-                const cropTxt = card.crop || null;
-                const bbchTxt = card.bbch != null ? 'Stage ' + card.bbch : null;
-                const uploadBadge = card.uploaded
-                    ? '<span style="font-size:0.6875rem;color:var(--accent);">✓ Shared</span>'
-                    : card.skip_upload
-                        ? '<span style="font-size:0.6875rem;color:var(--error);">⊘ Skip upload</span>'
-                        : '<span style="font-size:0.6875rem;color:var(--text-light);">● Not shared</span>';
+                const bbchTxt = card.bbch != null
+                    ? (() => {
+                        const crop = normalizeWheat((card.crop || '').trim().toLowerCase());
+                        const labels = BBCH_LABELS_CROP[crop] || BBCH_LABELS_GENERIC;
+                        return labels[card.bbch] || ('Stage ' + card.bbch);
+                      })()
+                    : null;
+                const uploadBadge = credentialsOk
+                    ? (card.uploaded
+                        ? '<span style="font-size:0.6875rem;color:var(--accent);">✓ Shared</span>'
+                        : card.skip_upload
+                            ? '<span style="font-size:0.6875rem;color:var(--error);">⊘ Skip upload</span>'
+                            : '<span style="font-size:0.6875rem;color:var(--text-light);">● Not shared</span>')
+                    : '';
                 return `
                     <div class="card">
                         <div class="card-image-wrapper" onclick="toggleCardView('${card.card_id}')">
@@ -3035,7 +3033,7 @@
                                 <div>
                                     <div class="card-meta">📅 ${formatTimestamp(card.timestamp)}</div>
                                     <div class="card-meta">📍 ${card.location ? `${card.location.latitude.toFixed(8)}, ${card.location.longitude.toFixed(8)}` : 'No GPS'}</div>
-                                    ${cropTxt ? '<div class="card-meta">&#127793; ' + escapeHtml(cropTxt) + '</div>' : ''}
+                                    ${card.crop ? '<div class="card-meta">&#127793; ' + escapeHtml(card.crop) + '</div>' : ''}
                                     ${bbchTxt ? '<div class="card-meta">&#127807; ' + bbchTxt + '</div>' : ''}
                                     ${moistureTxt ? '<div class="card-meta">💧 ' + moistureTxt + '</div>' : ''}
                                 </div>
@@ -3049,7 +3047,7 @@
                             <div class="card-actions" style="justify-content:space-between;align-items:center;">
                                 ${uploadBadge}
                                 <div style="display:flex;gap:0.5rem;">
-                                    ${!card.uploaded ? `<button class="card-btn" style="${card.skip_upload ? 'color:var(--error);border-color:var(--error);' : ''}" onclick="toggleSkipUpload('${card.card_id}')">${card.skip_upload ? 'Include' : 'Skip'}</button>` : ''}
+                                    ${credentialsOk && !card.uploaded ? `<button class="card-btn" style="${card.skip_upload ? 'color:var(--error);border-color:var(--error);' : ''}" onclick="toggleSkipUpload('${card.card_id}')">${card.skip_upload ? 'Include' : 'Skip'}</button>` : ''}
                                     <button class="card-btn" onclick="editCard('${card.card_id}')">Edit</button>
                                     <button class="card-btn" onclick="downloadCard('${card.card_id}')">Download</button>
                                     <button class="card-btn delete" onclick="deleteCard('${card.card_id}')">Delete</button>
@@ -3216,13 +3214,16 @@
                                 patch.keywords = kwNow;
                             const smNow = card.soil_moisture != null ? card.soil_moisture : null;
                             if (smNow !== editingCardSnapshot.soil_moisture)
-                                patch.soil_moisture = smNow;
+                                patch.soil_moisture = smNow != null ? moistureShortLabel(smNow) : null;
                             const cropNow = card.crop || null;
                             if (cropNow !== editingCardSnapshot.crop)
                                 patch.crop = cropNow;
                             const bbchNow = card.bbch != null ? card.bbch : null;
-                            if (bbchNow !== editingCardSnapshot.bbch)
-                                patch.bbch = bbchNow;
+                            if (bbchNow !== editingCardSnapshot.bbch) {
+                                const ck = normalizeWheat((card.crop || '').trim().toLowerCase());
+                                const bl = BBCH_LABELS_CROP[ck] || BBCH_LABELS_GENERIC;
+                                patch.bbch = bbchNow != null ? (bl[bbchNow] || bbchNow) : null;
+                            }
 
                             if (Object.keys(patch).length > 0) {
                                 const patchUrl = getUploadUrl();
@@ -3303,21 +3304,21 @@
         function exportCsv() {
             if (captures.length === 0) return;
             
-            let csv = 'ID,Timestamp,Latitude,Longitude,Crop Cover (%),Algorithm,R/G Ratio,B/G Ratio,Soil Moisture (0-5),Crop,Stage,Comments,Keywords\n';
+            let csv = 'ID,Timestamp,Latitude,Longitude,Crop Cover (%),Ratio,Soil Moisture,Crop,Crop Stage,Comments,Keywords\n';
             
             captures.forEach(c => {
+                const cropKey = normalizeWheat((c.crop || '').trim().toLowerCase());
+                const bbchLabels = BBCH_LABELS_CROP[cropKey] || BBCH_LABELS_GENERIC;
                 const row = [
                     c.card_id,
                     c.timestamp,
                     c.location ? c.location.latitude : '',
                     c.location ? c.location.longitude : '',
                     c.percentage.toFixed(1),
-                    c.algorithm || 'canopeo',
-                    c.rg_ratio != null ? c.rg_ratio : '',
-                    c.bg_ratio != null ? c.bg_ratio : '',
-                    c.soil_moisture != null ? c.soil_moisture : '',
+                    c.ratio != null ? c.ratio : '',
+                    c.soil_moisture != null ? `"${moistureShortLabel(c.soil_moisture)}"` : '',
                     c.crop ? `"${c.crop.replace(/"/g, '""')}"` : '',
-                    c.bbch != null ? c.bbch : '',
+                    c.bbch != null ? `"${bbchLabels[c.bbch] || c.bbch}"` : '',
                     `"${(c.comments || '').replace(/"/g, '""')}"`,
                     `"${c.keywords || ''}"`
                 ];
@@ -3432,18 +3433,20 @@
         async function buildUploadPayload(card) {
             const username = (uploadUsernameInput?.value || '').trim() || null;
             const token = (uploadTokenInput?.value || '').trim() || null;
+            const cropKey = normalizeWheat((card.crop || '').trim().toLowerCase());
+            const bbchLabels = BBCH_LABELS_CROP[cropKey] || BBCH_LABELS_GENERIC;
 
             return {
                 card_id: card.card_id,
                 timestamp: card.timestamp,
                 location: card.location ?? null,
                 percentage: card.percentage ?? null,
-                model: card.model ?? null,
+                ratio: card.ratio ?? null,
                 comments: card.comments || null,
                 keywords: card.keywords || '',
-                soil_moisture: card.soil_moisture != null ? card.soil_moisture : null,
+                soil_moisture: card.soil_moisture != null ? moistureShortLabel(card.soil_moisture) : null,
                 crop: card.crop || null,
-                bbch: card.bbch != null ? card.bbch : null,
+                bbch: card.bbch != null ? (bbchLabels[card.bbch] || card.bbch) : null,
                 username: username,
                 token: token,
                 originalImage: await blobToBase64(card.originalBlob),
@@ -3486,8 +3489,9 @@
             const canvas = document.createElement('canvas');
             canvas.width  = video.videoWidth;
             canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            const imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const code = jsQR(imageData.data, canvas.width, canvas.height, {
                 inversionAttempts: 'dontInvert'
             });
@@ -3834,10 +3838,8 @@
             });
             
             // Fit map to show all markers
-            if (capturesWithGPS.length > 0) {
-                const bounds = L.latLngBounds(capturesWithGPS.map(c => [c.location.latitude, c.location.longitude]));
-                map.fitBounds(bounds, { padding: [50, 50] });
-            }
+            const bounds = L.latLngBounds(capturesWithGPS.map(c => [c.location.latitude, c.location.longitude]));
+            map.fitBounds(bounds, { padding: [50, 50] });
         }
         
         // Update map when switching to map screen
