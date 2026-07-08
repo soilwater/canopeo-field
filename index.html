@@ -32,8 +32,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="libs/swiper/swiper-bundle.min.css">
+    <link rel="stylesheet" href="libs/leaflet/leaflet.css">
 
     <style>
         
@@ -766,6 +766,102 @@
             border-color: var(--error);
         }
         
+        .pdf-select-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .pdf-select-count {
+            font-size: 0.8125rem;
+            color: var(--text-light);
+        }
+        
+        .pdf-select-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .pdf-select-actions button {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border: 1px solid var(--border);
+            background: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text);
+        }
+        
+        .pdf-select-actions button:hover {
+            border-color: var(--accent);
+        }
+        
+        .pdf-card-list {
+            max-height: 320px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+        
+        .pdf-card-row {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.5rem 0.625rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+        }
+        
+        .pdf-card-row:last-child {
+            border-bottom: none;
+        }
+        
+        .pdf-card-row:hover {
+            background: var(--bg);
+        }
+        
+        .pdf-card-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+        
+        .pdf-card-thumb {
+            width: 44px;
+            height: 44px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+            background: var(--bg);
+        }
+        
+        .pdf-card-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .pdf-card-info-line1 {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .pdf-card-info-line2 {
+            font-size: 0.75rem;
+            color: var(--text-light);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
         .empty-state {
             text-align: center;
             padding: 3rem 1.25rem;
@@ -1447,6 +1543,7 @@
                             <button class="btn-small" id="downloadAllBtn">⬇ All</button>
                             <button class="btn-small" id="exportCsvBtn">📄 CSV</button>
                             <button class="btn-small" id="exportJsonBtn">🔧 JSON</button>
+                            <button class="btn-small" id="exportPdfBtn">📑 PDF</button>
                             <button class="btn-small" id="uploadAllBtn" style="display:none;">⬆ Upload</button>
                             <button class="btn-small" id="clearAllBtn">🗑 Clear</button>
                         </div>
@@ -1558,6 +1655,39 @@
                 <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
                     <button class="btn" id="cancelEdit">Cancel</button>
                     <button class="btn btn-primary" id="saveEdit">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export PDF Modal -->
+    <div class="modal" id="exportPdfModal">
+        <div class="modal-content" style="max-width:440px; max-height:88vh;">
+            <div class="modal-header">
+                <div class="modal-title">Export PDF Report</div>
+                <button class="modal-close" id="closeExportPdfModal">×</button>
+            </div>
+            <div class="modal-body" style="max-height:calc(88vh - 64px); overflow-y:auto;">
+                <div class="form-group">
+                    <label class="form-label">Report Title</label>
+                    <input type="text" class="form-input" id="pdfTitleInput" placeholder="Canopeo Report" maxlength="80">
+                </div>
+
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Select Cards</label>
+                    <div class="pdf-select-toolbar">
+                        <span class="pdf-select-count" id="pdfSelectCount">0 selected</span>
+                        <div class="pdf-select-actions">
+                            <button type="button" id="pdfSelectAllBtn">Select All</button>
+                            <button type="button" id="pdfSelectNoneBtn">Select None</button>
+                        </div>
+                    </div>
+                    <div class="pdf-card-list" id="pdfCardList"></div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                    <button class="btn" id="cancelExportPdf">Cancel</button>
+                    <button class="btn btn-primary" id="generateExportPdf" disabled>Generate PDF</button>
                 </div>
             </div>
         </div>
@@ -1789,9 +1919,10 @@
         <button onclick="stopQrScanner()" style="padding:0.5rem 1.5rem;background:#fff;border:none;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:0.875rem;cursor:pointer;">Cancel</button>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <script src="libs/leaflet/leaflet.js"></script>
+    <script src="libs/swiper/swiper-bundle.min.js"></script>
+    <script src="libs/jsqr/jsqr.js"></script>
+    <script src="libs/jspdf/jspdf.min.js"></script>
     <script>
         // Initialize IndexedDB
         let db;
@@ -2814,6 +2945,12 @@
         
         document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
         document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+        document.getElementById('exportPdfBtn').addEventListener('click', openExportPdfModal);
+        document.getElementById('closeExportPdfModal').addEventListener('click', closeExportPdfModal);
+        document.getElementById('cancelExportPdf').addEventListener('click', closeExportPdfModal);
+        document.getElementById('pdfSelectAllBtn').addEventListener('click', () => setAllPdfSelection(true));
+        document.getElementById('pdfSelectNoneBtn').addEventListener('click', () => setAllPdfSelection(false));
+        document.getElementById('generateExportPdf').addEventListener('click', handleGeneratePdfClick);
         document.getElementById('clearAllBtn').addEventListener('click', clearAll);
 
         // OPTIONAL UPLOAD (token only; app remains offline-first)
@@ -3346,6 +3483,262 @@
             showToast('JSON exported', 'success');
         }
         
+        // EXPORT PDF MODAL — title entry + card selection
+        let pdfSelectedIds = new Set();
+
+        function openExportPdfModal() {
+            if (captures.length === 0) {
+                showToast('No cards to export', 'error');
+                return;
+            }
+            pdfSelectedIds = new Set(); // none selected by default
+            document.getElementById('pdfTitleInput').value = '';
+            renderPdfCardList();
+            document.getElementById('exportPdfModal').classList.add('active');
+        }
+
+        function closeExportPdfModal() {
+            document.getElementById('exportPdfModal').classList.remove('active');
+        }
+
+        function renderPdfCardList() {
+            const list = document.getElementById('pdfCardList');
+            list.innerHTML = captures.map(card => {
+                const cropTxt = card.crop || 'No crop';
+                const dateTxt = formatTimestamp(card.timestamp);
+                return `
+                    <label class="pdf-card-row">
+                        <input type="checkbox" data-card-id="${card.card_id}" ${pdfSelectedIds.has(card.card_id) ? 'checked' : ''}>
+                        <img class="pdf-card-thumb" src="${card._originalUrl}" alt="">
+                        <div class="pdf-card-info">
+                            <div class="pdf-card-info-line1">${dateTxt}</div>
+                            <div class="pdf-card-info-line2">${cropTxt} · ${card.percentage.toFixed(1)}%</div>
+                        </div>
+                    </label>
+                `;
+            }).join('');
+
+            list.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    if (cb.checked) pdfSelectedIds.add(cb.dataset.cardId);
+                    else pdfSelectedIds.delete(cb.dataset.cardId);
+                    updatePdfSelectionUI();
+                });
+            });
+
+            updatePdfSelectionUI();
+        }
+
+        function setAllPdfSelection(selectAll) {
+            pdfSelectedIds = selectAll ? new Set(captures.map(c => c.card_id)) : new Set();
+            document.querySelectorAll('#pdfCardList input[type="checkbox"]').forEach(cb => {
+                cb.checked = selectAll;
+            });
+            updatePdfSelectionUI();
+        }
+
+        function updatePdfSelectionUI() {
+            const count = pdfSelectedIds.size;
+            document.getElementById('pdfSelectCount').textContent = `${count} selected`;
+            document.getElementById('generateExportPdf').disabled = count === 0;
+        }
+
+        function handleGeneratePdfClick() {
+            const selectedCards = captures.filter(c => pdfSelectedIds.has(c.card_id));
+            if (selectedCards.length === 0) return;
+            const titleInput = document.getElementById('pdfTitleInput').value.trim();
+            const title = titleInput || 'Canopeo Report';
+            closeExportPdfModal();
+            exportPdf(title, selectedCards);
+        }
+
+        // Loads an image (original or mask blob URL), downsamples it to a max
+        // dimension for a reasonable PDF file size, and returns a JPEG data URL
+        // plus its native pixel dimensions (used to preserve aspect ratio).
+        function loadImageForPdf(url, maxDim = 900) {
+            return new Promise((resolve) => {
+                if (!url) { resolve(null); return; }
+                const img = new Image();
+                img.onload = () => {
+                    const w = img.naturalWidth, h = img.naturalHeight;
+                    const scale = Math.min(1, maxDim / Math.max(w, h));
+                    const cw = Math.max(1, Math.round(w * scale));
+                    const ch = Math.max(1, Math.round(h * scale));
+                    const canvas = document.createElement('canvas');
+                    canvas.width = cw;
+                    canvas.height = ch;
+                    canvas.getContext('2d').drawImage(img, 0, 0, cw, ch);
+                    resolve({ dataUrl: canvas.toDataURL('image/jpeg', 0.85), width: w, height: h });
+                };
+                img.onerror = () => resolve(null);
+                img.src = url;
+            });
+        }
+
+        // Fixed, always-present metadata fields for a card. Missing values are
+        // rendered as an explicit placeholder rather than being omitted, so
+        // every card in the report has the same shape. BBCH stage uses the
+        // same crop-specific label lookup as the CSV export. The internal
+        // card_id is intentionally omitted — it's not meaningful to a reader.
+        function cardMetadataLines(card) {
+            const NA = 'Not available';
+            const moistureTxt = card.soil_moisture != null
+                ? `${moistureShortLabel(card.soil_moisture)} (${card.soil_moisture}/5)`
+                : NA;
+            const cropKey = normalizeWheat((card.crop || '').trim().toLowerCase());
+            const bbchLabels = BBCH_LABELS_CROP[cropKey] || BBCH_LABELS_GENERIC;
+            const stageTxt = card.bbch != null ? (bbchLabels[card.bbch] || card.bbch) : NA;
+            return [
+                ['Date', formatTimestamp(card.timestamp)],
+                ['Latitude', card.location ? card.location.latitude.toFixed(5) : NA],
+                ['Longitude', card.location ? card.location.longitude.toFixed(5) : NA],
+                ['Cover', `${card.percentage.toFixed(1)}%`],
+                ['Crop', card.crop || NA],
+                ['Stage', stageTxt],
+                ['Soil Moisture', moistureTxt],
+                ['Keywords', card.keywords || NA],
+                ['Notes', card.comments || NA]
+            ];
+        }
+
+        async function exportPdf(title = 'Canopeo Report', cardsForReport = captures) {
+            if (cardsForReport.length === 0) return;
+            if (typeof window.jspdf === 'undefined') {
+                showToast('PDF library unavailable — check your connection', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('exportPdfBtn');
+            const originalLabel = btn.textContent;
+            btn.disabled = true;
+
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ orientation: 'portrait', unit: 'in', format: 'letter' });
+
+                const PAGE_W = 8.5, PAGE_H = 11;
+                const MARGIN = 0.5;
+                const ROWS_PER_PAGE = 4;
+                const ROW_GAP = 0.15;
+                const COL_GAP = 0.15;
+                const HEADER_H = 0.62; // space reserved for title + subtitle + rule
+                const usableW = PAGE_W - 2 * MARGIN;
+                const colW = (usableW - 2 * COL_GAP) / 3; // three equal-width columns
+                const tableTop = MARGIN + HEADER_H;
+                const usableH = PAGE_H - tableTop - MARGIN;
+                const rowH = (usableH - (ROWS_PER_PAGE - 1) * ROW_GAP) / ROWS_PER_PAGE;
+                const totalPages = Math.ceil(cardsForReport.length / ROWS_PER_PAGE);
+                const reportDate = formatTimestamp(new Date().toISOString());
+
+                // Images are top-left aligned within their cell (a small pad in from
+                // the border) rather than centered, to keep the grid look consistent
+                // with the top-left aligned metadata text.
+                const CELL_PAD = 0.08;
+                const drawFitted = (imgData, boxX, boxY, boxW, boxH, alias, placeholderText) => {
+                    const innerW = boxW - 2 * CELL_PAD;
+                    const innerH = boxH - 2 * CELL_PAD;
+                    if (!imgData) {
+                        doc.setFont('helvetica', 'normal');
+                        doc.setFontSize(8);
+                        doc.setTextColor(150);
+                        doc.text(placeholderText || 'No image', boxX + CELL_PAD, boxY + CELL_PAD, { baseline: 'top' });
+                        return;
+                    }
+                    const scale = Math.min(innerW / imgData.width, innerH / imgData.height);
+                    const w = imgData.width * scale;
+                    const h = imgData.height * scale;
+                    doc.addImage(imgData.dataUrl, 'JPEG', boxX + CELL_PAD, boxY + CELL_PAD, w, h, alias);
+                };
+
+                for (let page = 0; page < totalPages; page++) {
+                    if (page > 0) doc.addPage();
+
+                    // Page title + subtitle
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(16);
+                    doc.setTextColor(20);
+                    doc.text(title, PAGE_W / 2, MARGIN, { align: 'center', baseline: 'top' });
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(9);
+                    doc.setTextColor(110);
+                    doc.text(
+                        `Report generated on ${reportDate}. Page ${page + 1}/${totalPages}`,
+                        PAGE_W / 2, MARGIN + 0.3, { align: 'center', baseline: 'top' }
+                    );
+
+                    doc.setDrawColor(200);
+                    doc.setLineWidth(0.008);
+                    doc.line(MARGIN, MARGIN + HEADER_H - 0.1, PAGE_W - MARGIN, MARGIN + HEADER_H - 0.1);
+
+                    for (let r = 0; r < ROWS_PER_PAGE; r++) {
+                        const cardIdx = page * ROWS_PER_PAGE + r;
+                        if (cardIdx >= cardsForReport.length) break;
+                        const card = cardsForReport[cardIdx];
+
+                        btn.textContent = `Building… ${cardIdx + 1}/${cardsForReport.length}`;
+
+                        const rowTop = tableTop + r * (rowH + ROW_GAP);
+                        const metaX = MARGIN;
+                        const origX = metaX + colW + COL_GAP;
+                        const maskX = origX + colW + COL_GAP;
+
+                        // Cell borders
+                        doc.setDrawColor(210);
+                        doc.setLineWidth(0.01);
+                        doc.rect(MARGIN, rowTop, usableW, rowH);
+                        doc.line(metaX + colW, rowTop, metaX + colW, rowTop + rowH);
+                        doc.line(origX + colW, rowTop, origX + colW, rowTop + rowH);
+
+                        // Metadata column — fixed field set, top-left aligned.
+                        // Property names render bold, values normal, for readability.
+                        doc.setFontSize(8);
+                        doc.setTextColor(30);
+                        const textW = colW - 2 * CELL_PAD;
+                        const LINE_H = 0.155; // slightly roomier than the image-column default
+                        let ty = rowTop + CELL_PAD;
+                        outer:
+                        for (const [label, value] of cardMetadataLines(card)) {
+                            if (ty > rowTop + rowH - CELL_PAD) break outer;
+
+                            doc.setFont('helvetica', 'bold');
+                            const labelText = `${label}: `;
+                            doc.text(labelText, metaX + CELL_PAD, ty, { baseline: 'top' });
+                            const labelWidth = doc.getTextWidth(labelText);
+
+                            doc.setFont('helvetica', 'normal');
+                            const valueW = Math.max(textW - labelWidth, 0.4);
+                            const wrapped = doc.splitTextToSize(String(value), valueW);
+                            for (const w of wrapped) {
+                                if (ty > rowTop + rowH - CELL_PAD) break outer;
+                                doc.text(w, metaX + CELL_PAD + labelWidth, ty, { baseline: 'top' });
+                                ty += LINE_H;
+                            }
+                        }
+
+                        // Image columns (loaded/downsampled just-in-time to limit memory use).
+                        // Mask intentionally does NOT fall back to the original photo when
+                        // missing — that would silently mislabel an RGB image as a mask.
+                        const [origImg, maskImg] = await Promise.all([
+                            loadImageForPdf(card._originalUrl),
+                            loadImageForPdf(card._classifiedUrl)
+                        ]);
+                        drawFitted(origImg, origX, rowTop, colW, rowH, `${card.card_id}-orig`, 'No original image');
+                        drawFitted(maskImg, maskX, rowTop, colW, rowH, `${card.card_id}-mask`, 'No mask available');
+                    }
+                }
+
+                doc.save(`canopeo-field_cards_${Date.now()}.pdf`);
+                showToast('PDF exported', 'success');
+            } catch (error) {
+                console.error('Error exporting PDF:', error);
+                showToast('Error exporting PDF', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalLabel;
+            }
+        }
+
         function clearAll() {
             if (!confirm('Clear all captures?')) return;
             
@@ -3554,7 +3947,7 @@
 
         // ── TERMS & CONDITIONS ────────────────────────────────────────────────
 
-        const APP_TC_VERSION     = '1.0.0';
+        const APP_TC_VERSION     = '2.0.0';
         const APP_TC_STORAGE_KEY = 'canopeo-field_tc_accepted_version';
 
         function tcCheckAndShow() {

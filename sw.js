@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever you deploy new assets.
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2.0.0";
 const CACHE_NAME    = `canopeo-field-${CACHE_VERSION}`;
 
 // Base path — must match the GitHub Pages subdirectory.
@@ -13,6 +13,19 @@ const SHELL_ASSETS = [
   `${BASE}/manifest.json`,
 ];
 
+// ── Library assets ────────────────────────────────────────────────────────────
+// Self-hosted (no longer CDN-loaded), so they're precached alongside the shell —
+// install fails loudly rather than the app silently missing map/PDF/QR features
+// after a spotty first load.
+const LIB_ASSETS = [
+  `${BASE}/libs/leaflet/leaflet.js`,
+  `${BASE}/libs/leaflet/leaflet.css`,
+  `${BASE}/libs/swiper/swiper-bundle.min.js`,
+  `${BASE}/libs/swiper/swiper-bundle.min.css`,
+  `${BASE}/libs/jsqr/jsqr.js`,
+  `${BASE}/libs/jspdf/jspdf.min.js`,
+];
+
 // ── Icon assets ───────────────────────────────────────────────────────────────
 // Cached lazily on first fetch (not required for install).
 const ICON_PATHS = [
@@ -21,12 +34,6 @@ const ICON_PATHS = [
   `${BASE}/icons/icon_128.png`,
   `${BASE}/icons/icon_256.png`,
   `${BASE}/icons/icon_512.png`,
-];
-
-// ── CDN origins ───────────────────────────────────────────────────────────────
-const CDN_ORIGINS = [
-  "https://cdn.jsdelivr.net",
-  "https://unpkg.com",
 ];
 
 // ── Google Fonts origins ──────────────────────────────────────────────────────
@@ -40,7 +47,7 @@ self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(SHELL_ASSETS))
+      .then(cache => cache.addAll([...SHELL_ASSETS, ...LIB_ASSETS]))
   );
 });
 
@@ -63,12 +70,6 @@ self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
 
   const url = new URL(event.request.url);
-
-  // CDN libraries: stale-while-revalidate
-  if (CDN_ORIGINS.some(o => url.origin === o)) {
-    event.respondWith(staleWhileRevalidate(event.request));
-    return;
-  }
 
   // Google Fonts: stale-while-revalidate
   if (FONTS_ORIGINS.some(o => url.origin === o)) {
