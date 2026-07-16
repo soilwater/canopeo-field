@@ -3607,13 +3607,13 @@
         function exportJson() {
             if (captures.length === 0) return;
 
-            const exportData = captures.map(({ originalImage, classifiedImage, originalBlob, classifiedBlob, _originalUrl, _classifiedUrl, ...rest }) => {
+            const exportData = captures.map(({ originalImage, classifiedImage, originalBlob, classifiedBlob, _originalUrl, _classifiedUrl, soil_moisture, bbch, ...rest }) => {
                 const cropKey = normalizeWheat((rest.crop || '').trim().toLowerCase());
                 const bbchLabels = BBCH_LABELS_CROP[cropKey] || BBCH_LABELS_GENERIC;
                 return {
                     ...rest,
-                    soil_moisture_label: rest.soil_moisture != null ? moistureShortLabel(rest.soil_moisture) : null,
-                    bbch_label: rest.bbch != null ? (bbchLabels[rest.bbch] || null) : null
+                    soil_moisture: soil_moisture != null ? moistureShortLabel(soil_moisture) : null,
+                    bbch: bbch != null ? (bbchLabels[bbch] || null) : null
                 };
             });
             const json = JSON.stringify(exportData, null, 2);
@@ -3721,7 +3721,7 @@
         function cardMetadataLines(card) {
             const NA = 'Not available';
             const moistureTxt = card.soil_moisture != null
-                ? `${moistureShortLabel(card.soil_moisture)} (${card.soil_moisture}/5)`
+                ? moistureShortLabel(card.soil_moisture)
                 : NA;
             const cropKey = normalizeWheat((card.crop || '').trim().toLowerCase());
             const bbchLabels = BBCH_LABELS_CROP[cropKey] || BBCH_LABELS_GENERIC;
@@ -4085,7 +4085,7 @@
 
         // ── TERMS & CONDITIONS ────────────────────────────────────────────────
 
-        const APP_TC_VERSION     = '2.1.0';
+        const APP_TC_VERSION     = '2.3.0';
         const APP_TC_STORAGE_KEY = 'canopeo-field_tc_accepted_version';
 
         function tcCheckAndShow() {

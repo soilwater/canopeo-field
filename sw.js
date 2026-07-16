@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever you deploy new assets.
-const CACHE_VERSION = "v2.2.0";
+const CACHE_VERSION = "v2.3.0";
 const CACHE_NAME    = `canopeo-field-${CACHE_VERSION}`;
 
 // Base path — must match the GitHub Pages subdirectory.
