@@ -873,6 +873,28 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
+        .download-option-row {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            padding: 0.625rem 0.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: var(--text);
+            transition: background 0.15s;
+        }
+        .download-option-row:hover {
+            background: var(--bg);
+        }
+        .download-option-row input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
         
         .empty-state {
             text-align: center;
@@ -1560,21 +1582,9 @@
                         </div>
                         
                         <div class="gallery-actions">
-                            <button class="btn-small" id="downloadAllBtn">
+                            <button class="btn-small" id="downloadOptionsBtn">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-                                All
-                            </button>
-                            <button class="btn-small" id="exportCsvBtn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg>
-                                CSV
-                            </button>
-                            <button class="btn-small" id="exportJsonBtn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3L4 12l4 9"/><path d="M16 3l4 9-4 9"/></svg>
-                                JSON
-                            </button>
-                            <button class="btn-small" id="exportPdfBtn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/></svg>
-                                PDF
+                                Download
                             </button>
                             <button class="btn-small" id="uploadAllBtn" style="display:none;">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><path d="M5 3h14"/></svg>
@@ -1726,6 +1736,40 @@
                 <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
                     <button class="btn" id="cancelExportPdf">Cancel</button>
                     <button class="btn btn-primary" id="generateExportPdf" disabled>Generate PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Options Modal -->
+    <div class="modal" id="downloadOptionsModal">
+        <div class="modal-content" style="max-width:380px;">
+            <div class="modal-header">
+                <div class="modal-title">Download</div>
+                <button class="modal-close" id="closeDownloadOptionsModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex;flex-direction:column;gap:0.125rem;">
+                    <label class="download-option-row">
+                        <input type="radio" name="downloadOption" value="all" checked>
+                        All Images (originals + masks)
+                    </label>
+                    <label class="download-option-row">
+                        <input type="radio" name="downloadOption" value="csv">
+                        CSV
+                    </label>
+                    <label class="download-option-row">
+                        <input type="radio" name="downloadOption" value="json">
+                        JSON
+                    </label>
+                    <label class="download-option-row">
+                        <input type="radio" name="downloadOption" value="pdf">
+                        PDF Report
+                    </label>
+                </div>
+                <div style="display: flex; gap: 0.75rem; margin-top: 1.25rem;">
+                    <button class="btn" id="cancelDownloadOptions">Cancel</button>
+                    <button class="btn btn-primary" id="confirmDownloadOptions">Download</button>
                 </div>
             </div>
         </div>
@@ -3003,16 +3047,42 @@
         });
         
         // GALLERY
-        document.getElementById('downloadAllBtn').addEventListener('click', () => {
-            if (captures.length === 0) return;
-            captures.forEach((capture, index) => {
-                setTimeout(() => downloadCard(capture.card_id), index * 600);
-            });
+        function closeDownloadOptionsModal() {
+            document.getElementById('downloadOptionsModal').classList.remove('active');
+        }
+
+        document.getElementById('downloadOptionsBtn').addEventListener('click', () => {
+            if (captures.length === 0) {
+                showToast('No cards to download', 'error');
+                return;
+            }
+            document.getElementById('downloadOptionsModal').classList.add('active');
         });
-        
-        document.getElementById('exportCsvBtn').addEventListener('click', exportCsv);
-        document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
-        document.getElementById('exportPdfBtn').addEventListener('click', openExportPdfModal);
+        document.getElementById('closeDownloadOptionsModal').addEventListener('click', closeDownloadOptionsModal);
+        document.getElementById('cancelDownloadOptions').addEventListener('click', closeDownloadOptionsModal);
+        document.getElementById('confirmDownloadOptions').addEventListener('click', () => {
+            const selected = document.querySelector('input[name="downloadOption"]:checked');
+            const value = selected ? selected.value : 'all';
+            closeDownloadOptionsModal();
+            switch (value) {
+                case 'all':
+                    captures.forEach((capture, index) => {
+                        setTimeout(() => downloadCard(capture.card_id), index * 600);
+                    });
+                    break;
+                case 'csv':
+                    exportCsv();
+                    break;
+                case 'json':
+                    exportJson();
+                    break;
+                case 'pdf':
+                    // Reuses the existing PDF export modal (title + card selection)
+                    openExportPdfModal();
+                    break;
+            }
+        });
+
         document.getElementById('closeExportPdfModal').addEventListener('click', closeExportPdfModal);
         document.getElementById('cancelExportPdf').addEventListener('click', closeExportPdfModal);
         document.getElementById('pdfSelectAllBtn').addEventListener('click', () => setAllPdfSelection(true));
@@ -3676,8 +3746,8 @@
                 return;
             }
 
-            const btn = document.getElementById('exportPdfBtn');
-            const originalLabel = btn.textContent;
+            const btn = document.getElementById('downloadOptionsBtn');
+            const originalLabel = btn.innerHTML;
             btn.disabled = true;
 
             try {
@@ -3803,7 +3873,7 @@
                 showToast('Error exporting PDF', 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = originalLabel;
+                btn.innerHTML = originalLabel;
             }
         }
 
