@@ -2016,6 +2016,17 @@
                        placeholder="Token"
                        class="form-input">
                 <button class="btn btn-primary" onclick="closeSettingsModal()" style="margin-top:0.25rem;">Done</button>
+
+                <div style="margin-top:0.5rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+                    <p style="font-size:0.6875rem;color:var(--text-light);line-height:1.5;margin-bottom:0.5rem;">
+                        Re-sync clears the "Shared" status so you can re-upload images.
+                         Images already on the server are skipped automatically — nothing is duplicated.
+                    </p>
+                    <button type="button" onclick="resyncAll()"
+                            style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.55rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);font-family:'JetBrains Mono',monospace;font-size:0.8125rem;color:var(--text);cursor:pointer;width:100%;">
+                        ↻ Re-sync all to server
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -3130,6 +3141,42 @@
             return captures.filter(c => !c.uploaded && !c.skip_upload);
         }
 
+        // Recovery for a server-side database reset: the local "✓ Shared" flags
+        // no longer match the server. Clear them so every card becomes pending
+        // again; the normal Upload button then re-pushes them. The server skips
+        // any it still has (duplicate check) without duplicating files or using
+        // quota, so re-syncing is safe to run even if only some cards are missing.
+        // 'skip_upload' choices are preserved.
+        async function resyncAll() {
+            const shared = captures.filter(c => c.uploaded);
+            if (shared.length === 0) {
+                showToast('Nothing to re-sync — no images are marked Shared', 'info');
+                return;
+            }
+            if (!confirm(
+                `Re-sync ${shared.length} image${shared.length === 1 ? '' : 's'} to the server?\n\n` +
+                `This clears their "Shared" status so they can be uploaded again. ` +
+                `Images the server already has are skipped automatically. ` +
+                `Then tap Upload to send them.`
+            )) return;
+
+            try {
+                for (const cap of shared) {
+                    cap.uploaded = false;
+                    cap.uploaded_at = null;
+                    await saveCapture(cap);
+                }
+                renderGallery();
+                updateUploadUI();
+                closeSettingsModal();
+                showToast(`${shared.length} image${shared.length === 1 ? '' : 's'} ready to re-upload — tap Upload`, 'success');
+            } catch (err) {
+                console.error('Re-sync failed:', err);
+                showToast('Re-sync failed — please try again', 'error');
+            }
+        }
+        window.resyncAll = resyncAll;
+
         let credentialsOk = false;
         const uploadBtnLabel = document.getElementById('uploadBtnLabel');
 
@@ -4085,7 +4132,7 @@
 
         // ── TERMS & CONDITIONS ────────────────────────────────────────────────
 
-        const APP_TC_VERSION     = '2.3.0';
+        const APP_TC_VERSION     = '2.4.0';
         const APP_TC_STORAGE_KEY = 'canopeo-field_tc_accepted_version';
 
         function tcCheckAndShow() {
