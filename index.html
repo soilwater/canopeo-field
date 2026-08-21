@@ -2179,6 +2179,13 @@
 
         function hydrateCaptureForUI(card) {
             if (!card) return card;
+            // Migration: canopy cover was previously stored under `percentage`.
+            // Backfill the new key for older records and drop the stale one so
+            // exports stay clean.
+            if (card.canopy_cover == null && card.percentage != null) {
+                card.canopy_cover = card.percentage;
+            }
+            delete card.percentage;
             revokeCaptureObjectUrls(card);
             card._originalUrl = card.originalBlob instanceof Blob
                 ? URL.createObjectURL(card.originalBlob) : '';
@@ -3166,7 +3173,7 @@
                 card_id: cardId,
                 timestamp: currentCapture.timestamp,
                 location: currentCapture.location,
-                percentage: currentCapture.percentage,
+                canopy_cover: currentCapture.percentage,
                 ratio: currentCapture.rgRatio,
                 alpha: currentCapture.alpha,
                 color: currentCapture.color,
@@ -3517,7 +3524,7 @@
                         </div>
                         <div class="card-content">
                             <div class="card-stats">
-                                <div class="card-percentage">${card.percentage.toFixed(1)}%</div>
+                                <div class="card-percentage">${card.canopy_cover.toFixed(1)}%</div>
                                 <div>
                                     <div class="card-meta">📅 ${formatTimestamp(card.timestamp)}</div>
                                     <div class="card-meta">📍 ${card.location ? `${card.location.latitude.toFixed(8)}, ${card.location.longitude.toFixed(8)}` : 'No GPS'}</div>
@@ -3815,7 +3822,7 @@
                     c.timestamp,
                     c.location ? c.location.latitude : '',
                     c.location ? c.location.longitude : '',
-                    c.percentage.toFixed(1),
+                    c.canopy_cover.toFixed(1),
                     c.ratio != null ? c.ratio : '',
                     c.soil_moisture != null ? `"${moistureShortLabel(c.soil_moisture)}"` : '',
                     c.crop ? `"${c.crop.replace(/"/g, '""')}"` : '',
@@ -3877,7 +3884,7 @@
                         <img class="pdf-card-thumb" src="${card._originalUrl}" alt="">
                         <div class="pdf-card-info">
                             <div class="pdf-card-info-line1">${dateTxt}</div>
-                            <div class="pdf-card-info-line2">${cropTxt} · ${card.percentage.toFixed(1)}%</div>
+                            <div class="pdf-card-info-line2">${cropTxt} · ${card.canopy_cover.toFixed(1)}%</div>
                         </div>
                     </label>
                 `;
@@ -3957,7 +3964,7 @@
                 ['Date', formatTimestamp(card.timestamp)],
                 ['Latitude', card.location ? card.location.latitude.toFixed(5) : NA],
                 ['Longitude', card.location ? card.location.longitude.toFixed(5) : NA],
-                ['Cover', `${card.percentage.toFixed(1)}%`],
+                ['Cover', `${card.canopy_cover.toFixed(1)}%`],
                 ['Crop', card.crop || NA],
                 ['Stage', stageTxt],
                 ['Crop Height', card.crop_height != null ? `${card.crop_height} cm` : NA],
@@ -4207,7 +4214,7 @@
                 card_id: card.card_id,
                 timestamp: card.timestamp,
                 location: card.location ?? null,
-                percentage: card.percentage ?? null,
+                canopy_cover: card.canopy_cover ?? null,
                 ratio: card.ratio ?? null,
                 comments: card.comments || null,
                 keywords: card.keywords || '',
@@ -4580,7 +4587,7 @@
             
             // Add markers for each capture
             capturesWithGPS.forEach(capture => {
-                const color = getMarkerColor(capture.percentage);
+                const color = getMarkerColor(capture.canopy_cover);
                 
                 const icon = L.divIcon({
                     className: 'custom-marker',
@@ -4596,7 +4603,7 @@
                 const popupContent = `
                     <div style="min-width: 150px;">
                         <img src="${capture._originalUrl}" class="map-popup-image" style="max-width: 150px; border-radius: 4px; margin-bottom: 0.5rem;">                        
-                        <div class="map-popup-percentage">${capture.percentage.toFixed(1)}%</div>
+                        <div class="map-popup-percentage">${capture.canopy_cover.toFixed(1)}%</div>
                         <div class="map-popup-meta">📅 ${formatTimestamp(capture.timestamp)}</div>
                         ${capture.comments ? `<div class="map-popup-meta" style="margin-top: 0.5rem;">${escapeHtml(capture.comments)}</div>` : ''}
                     </div>
