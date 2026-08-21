@@ -1429,6 +1429,81 @@
             min-height: 1.2rem;
         }
 
+        /* ── CROP HEIGHT STEPPER ───────────────────────────────── */
+        .height-wrap {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .height-row {
+            display: flex;
+            align-items: stretch;
+            gap: 0.3rem;
+        }
+        /* ±1 / ±10 stepper buttons. Outer (±10) use the strong accent,
+           inner (±1) a lighter green so big vs. fine jumps read at a glance. */
+        .height-step {
+            flex: 0 0 auto;
+            min-width: 2.6rem;
+            padding: 0.5rem 0.3rem;
+            border: 2px solid transparent;
+            border-radius: 6px;
+            background: var(--accent);
+            color: #fff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: center;
+            transition: transform 0.1s, background 0.1s;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .height-step.step-fine { background: #7cb342; }
+        .height-step:active { transform: scale(0.93); }
+        .height-input-box {
+            flex: 1 1 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg);
+            padding: 0 0.4rem;
+            min-width: 0;
+        }
+        .height-input-box:focus-within { border-color: var(--accent); }
+        .height-input {
+            width: 100%;
+            min-width: 0;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 0.4rem 0;
+            -moz-appearance: textfield;
+        }
+        .height-input:focus { outline: none; }
+        .height-input::-webkit-outer-spin-button,
+        .height-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        .height-unit {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .height-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-top: 0.375rem;
+        }
+
         /* ── QR SCANNER ────────────────────────────────────────── */
         #qr-modal-overlay {
             position: fixed; inset: 0; z-index: 2000;
@@ -1664,6 +1739,25 @@
                         <div class="bbch-footer">
                             <span class="bbch-desc" id="editBbchValueLabel">Not recorded</span>
                             <button type="button" class="moisture-clear-btn" onclick="clearEditBbch()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-divided">
+                    <label class="form-label">Crop Height</label>
+                    <div class="height-wrap" id="editHeightWrap">
+                        <div class="height-row">
+                            <button type="button" class="height-step" onclick="stepEditHeight(-10)">−10</button>
+                            <button type="button" class="height-step step-fine" onclick="stepEditHeight(-1)">−1</button>
+                            <div class="height-input-box">
+                                <input type="number" inputmode="numeric" pattern="[0-9]*" class="height-input" id="editHeightInput" placeholder="––" min="0" max="1000" oninput="onEditHeightInput(this.value)">
+                                <span class="height-unit">cm</span>
+                            </div>
+                            <button type="button" class="height-step step-fine" onclick="stepEditHeight(1)">+1</button>
+                            <button type="button" class="height-step" onclick="stepEditHeight(10)">+10</button>
+                        </div>
+                        <div class="height-footer">
+                            <button type="button" class="moisture-clear-btn" onclick="clearEditHeight()">Clear</button>
                         </div>
                     </div>
                 </div>
@@ -1954,6 +2048,25 @@
                 </div>
 
                 <div class="form-group form-group-divided">
+                    <label class="form-label">Crop Height</label>
+                    <div class="height-wrap" id="heightWrap">
+                        <div class="height-row">
+                            <button type="button" class="height-step" onclick="stepHeight(-10)">−10</button>
+                            <button type="button" class="height-step step-fine" onclick="stepHeight(-1)">−1</button>
+                            <div class="height-input-box">
+                                <input type="number" inputmode="numeric" pattern="[0-9]*" class="height-input" id="heightInput" placeholder="––" min="0" max="1000" oninput="onHeightInput(this.value)">
+                                <span class="height-unit">cm</span>
+                            </div>
+                            <button type="button" class="height-step step-fine" onclick="stepHeight(1)">+1</button>
+                            <button type="button" class="height-step" onclick="stepHeight(10)">+10</button>
+                        </div>
+                        <div class="height-footer">
+                            <button type="button" class="moisture-clear-btn" onclick="clearHeight()">Clear</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group form-group-divided">
                     <label class="form-label">Comments</label>
                     <textarea class="form-textarea" id="metaComments" maxlength="200" placeholder="Add observations..."></textarea>
                     <div class="char-counter"><span id="charCount">200</span> characters remaining</div>
@@ -2237,6 +2350,53 @@
         };
         // ── SOIL MOISTURE ─────────────────────────────────────────────────────
         // null = not recorded; 0-5 integer scale
+        // ── CROP HEIGHT (whole cm, null = not recorded) ──────────────────
+        const HEIGHT_MAX = 1000; // cm — generous ceiling (tall corn/sorghum)
+        let selectedHeight     = null;
+        let selectedEditHeight = null;
+
+        function clampHeight(v) {
+            if (v == null || isNaN(v)) return null;
+            return Math.max(0, Math.min(HEIGHT_MAX, Math.round(v)));
+        }
+
+        // Direct keypad entry. Only overwrite the field when clamping actually
+        // changed the value, so typing mid-number doesn't fight the cursor.
+        function onHeightInput(raw) {
+            if (raw === '' || raw == null) { selectedHeight = null; return; }
+            const parsed = parseInt(raw, 10);
+            const c = clampHeight(parsed);
+            selectedHeight = c;
+            if (c !== parsed) document.getElementById('heightInput').value = (c == null ? '' : c);
+        }
+        function stepHeight(delta) {
+            const base = selectedHeight != null ? selectedHeight : 0;
+            selectedHeight = clampHeight(base + delta);
+            document.getElementById('heightInput').value = (selectedHeight == null ? '' : selectedHeight);
+        }
+        function clearHeight() {
+            selectedHeight = null;
+            document.getElementById('heightInput').value = '';
+        }
+        function resetHeightSelector() { clearHeight(); }
+
+        function onEditHeightInput(raw) {
+            if (raw === '' || raw == null) { selectedEditHeight = null; return; }
+            const parsed = parseInt(raw, 10);
+            const c = clampHeight(parsed);
+            selectedEditHeight = c;
+            if (c !== parsed) document.getElementById('editHeightInput').value = (c == null ? '' : c);
+        }
+        function stepEditHeight(delta) {
+            const base = selectedEditHeight != null ? selectedEditHeight : 0;
+            selectedEditHeight = clampHeight(base + delta);
+            document.getElementById('editHeightInput').value = (selectedEditHeight == null ? '' : selectedEditHeight);
+        }
+        function clearEditHeight() {
+            selectedEditHeight = null;
+            document.getElementById('editHeightInput').value = '';
+        }
+
         let selectedMoisture     = null;
         let selectedEditMoisture = null;
 
@@ -2632,6 +2792,7 @@
             currentCapture.rgRatio = _ratio;
             resetMoistureSelector();
             resetBbchSelector();
+            resetHeightSelector();
             resetCropSelector();
 
             document.getElementById('alphaSlider').value = 0.70;
@@ -3014,6 +3175,7 @@
                 soil_moisture: selectedMoisture,
                 crop: selectedCrop,
                 bbch: selectedBbch,
+                crop_height: selectedHeight,
                 uploaded: false,
                 uploaded_at: null,
                 skip_upload: false,
@@ -3035,6 +3197,7 @@
                 charCount.textContent = '200';
                 resetMoistureSelector();
                 resetBbchSelector();
+                resetHeightSelector();
                 resetCropSelector();
                 
                 if (currentCapture.imageUrl) { try { URL.revokeObjectURL(currentCapture.imageUrl); } catch (_) {} }
@@ -3329,6 +3492,9 @@
                 const moistureTxt = card.soil_moisture != null
                     ? moistureShortLabel(card.soil_moisture)
                     : null;
+                const heightTxt = card.crop_height != null
+                    ? card.crop_height + ' cm'
+                    : null;
                 const bbchTxt = card.bbch != null
                     ? (() => {
                         const crop = normalizeWheat((card.crop || '').trim().toLowerCase());
@@ -3357,6 +3523,7 @@
                                     <div class="card-meta">📍 ${card.location ? `${card.location.latitude.toFixed(8)}, ${card.location.longitude.toFixed(8)}` : 'No GPS'}</div>
                                     ${card.crop ? '<div class="card-meta">&#127793; ' + escapeHtml(card.crop) + '</div>' : ''}
                                     ${bbchTxt ? '<div class="card-meta">&#127807; ' + bbchTxt + '</div>' : ''}
+                                    ${heightTxt ? '<div class="card-meta">&#128207; ' + heightTxt + '</div>' : ''}
                                     ${moistureTxt ? '<div class="card-meta">💧 ' + moistureTxt + '</div>' : ''}
                                 </div>
                             </div>
@@ -3480,6 +3647,7 @@
                 soil_moisture: card.soil_moisture != null ? card.soil_moisture : null,
                 crop:         card.crop          || null,
                 bbch:         card.bbch          != null ? card.bbch          : null,
+                crop_height:  card.crop_height   != null ? card.crop_height   : null,
             };
             document.getElementById('editComments').value = card.comments || '';
             
@@ -3493,6 +3661,12 @@
             } else { clearEditMoisture(); }
 
             if (card.bbch != null) { onEditBbchInput(card.bbch); } else { clearEditBbch(); }
+
+            if (card.crop_height != null) {
+                selectedEditHeight = clampHeight(card.crop_height);
+                document.getElementById('editHeightInput').value = selectedEditHeight;
+            } else { clearEditHeight(); }
+
             if (card.crop) { commitEditCrop(card.crop); } else { clearEditCrop(); }
             renderCropSuggestions('editCropSuggestions', 'editCropInput', commitEditCrop, card.crop || null);
 
@@ -3506,6 +3680,7 @@
             editKeywords = [];
             clearEditMoisture();
             clearEditBbch();
+            clearEditHeight();
             clearEditCrop();
         }
         document.getElementById('closeEditModal').addEventListener('click', dismissEditModal);
@@ -3520,6 +3695,7 @@
                     card.soil_moisture = selectedEditMoisture;
                     card.crop          = selectedEditCrop;
                     card.bbch          = selectedEditBbch;
+                    card.crop_height   = selectedEditHeight;
                     
                     try {
                         await saveCapture(card);
@@ -3546,6 +3722,9 @@
                                 const bl = BBCH_LABELS_CROP[ck] || BBCH_LABELS_GENERIC;
                                 patch.bbch = bbchNow != null ? (bl[bbchNow] || bbchNow) : null;
                             }
+                            const heightNow = card.crop_height != null ? card.crop_height : null;
+                            if (heightNow !== editingCardSnapshot.crop_height)
+                                patch.crop_height = heightNow;
 
                             if (Object.keys(patch).length > 0) {
                                 const patchUrl = getUploadUrl();
@@ -3626,7 +3805,7 @@
         function exportCsv() {
             if (captures.length === 0) return;
             
-            let csv = 'ID,Timestamp,Latitude,Longitude,Crop Cover (%),Ratio,Soil Moisture,Crop,Crop Stage,Comments,Keywords\n';
+            let csv = 'ID,Timestamp,Latitude,Longitude,Crop Cover (%),Ratio,Soil Moisture,Crop,Crop Stage,Crop Height (cm),Comments,Keywords\n';
             
             captures.forEach(c => {
                 const cropKey = normalizeWheat((c.crop || '').trim().toLowerCase());
@@ -3641,6 +3820,7 @@
                     c.soil_moisture != null ? `"${moistureShortLabel(c.soil_moisture)}"` : '',
                     c.crop ? `"${c.crop.replace(/"/g, '""')}"` : '',
                     c.bbch != null ? `"${bbchLabels[c.bbch] || c.bbch}"` : '',
+                    c.crop_height != null ? c.crop_height : '',
                     `"${(c.comments || '').replace(/"/g, '""')}"`,
                     `"${c.keywords || ''}"`
                 ];
@@ -3780,6 +3960,7 @@
                 ['Cover', `${card.percentage.toFixed(1)}%`],
                 ['Crop', card.crop || NA],
                 ['Stage', stageTxt],
+                ['Crop Height', card.crop_height != null ? `${card.crop_height} cm` : NA],
                 ['Soil Moisture', moistureTxt],
                 ['Keywords', card.keywords || NA],
                 ['Notes', card.comments || NA]
@@ -4033,6 +4214,7 @@
                 soil_moisture: card.soil_moisture != null ? moistureShortLabel(card.soil_moisture) : null,
                 crop: card.crop || null,
                 bbch: card.bbch != null ? (bbchLabels[card.bbch] || card.bbch) : null,
+                crop_height: card.crop_height != null ? card.crop_height : null,
                 username: username,
                 token: token,
                 originalImage: await blobToBase64(card.originalBlob),
