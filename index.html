@@ -1846,7 +1846,7 @@
                 <div style="display:flex;flex-direction:column;gap:0.125rem;">
                     <label class="download-option-row">
                         <input type="radio" name="downloadOption" value="all" checked>
-                        All Images (originals + masks)
+                        All Images + Data (.zip)
                     </label>
                     <label class="download-option-row">
                         <input type="radio" name="downloadOption" value="csv">
@@ -2158,6 +2158,8 @@
     <script src="libs/swiper/swiper-bundle.min.js"></script>
     <script src="libs/jsqr/jsqr.js"></script>
     <script src="libs/jspdf/jspdf.min.js"></script>
+    <script src="libs/jszip.min.js"></script>
+    <script src="libs/FileSaver.js"></script>
     <script>
         // Initialize IndexedDB
         let db;
@@ -3247,9 +3249,7 @@
             closeDownloadOptionsModal();
             switch (value) {
                 case 'all':
-                    captures.forEach((capture, index) => {
-                        setTimeout(() => downloadCard(capture.card_id), index * 600);
-                    });
+                    exportZip();
                     break;
                 case 'csv':
                     exportCsv();
@@ -3809,10 +3809,8 @@
             }
         };
         
-        function exportCsv() {
-            if (captures.length === 0) return;
-            
-            let csv = 'ID,Timestamp,Latitude,Longitude,Crop Cover (%),Ratio,Soil Moisture,Crop,Crop Stage,Crop Height (cm),Comments,Keywords\n';
+        function buildCsv() {
+            let csv ='ID,Timestamp,Latitude,Longitude,Crop Cover (%),Ratio,Soil Moisture,Crop,Crop Stage,Crop Height (cm),Comments,Keywords\n';
             
             captures.forEach(c => {
                 const cropKey = normalizeWheat((c.crop || '').trim().toLowerCase());
@@ -3833,14 +3831,16 @@
                 ];
                 csv += row.join(',') + '\n';
             });
-            
-            downloadFile(csv, `canopeo-field_export_${Date.now()}.csv`, 'text/csv');
+            return csv;
+        }
+
+        function exportCsv() {
+            if (captures.length === 0) return;
+            downloadFile(buildCsv(),`canopeo-field_export_${Date.now()}.csv`, 'text/csv');
             showToast('CSV exported', 'success');
         }
         
-        function exportJson() {
-            if (captures.length === 0) return;
-
+        function buildJson() {
             const exportData = captures.map(({ originalImage, classifiedImage, originalBlob, classifiedBlob, _originalUrl, _classifiedUrl, soil_moisture, bbch, ...rest }) => {
                 const cropKey = normalizeWheat((rest.crop || '').trim().toLowerCase());
                 const bbchLabels = BBCH_LABELS_CROP[cropKey] || BBCH_LABELS_GENERIC;
@@ -3850,9 +3850,82 @@
                     bbch: bbch != null ? (bbchLabels[bbch] || null) : null
                 };
             });
-            const json = JSON.stringify(exportData, null, 2);
-            downloadFile(json, `canopeo-field_export_${Date.now()}.json`, 'application/json');
+            return JSON.stringify(exportData, null, 2);
+        }
+
+        function exportJson() {
+            if (captures.length === 0) return;
+            downloadFile(buildJson(), `canopeo-field_export_${Date.now()}.json`, 'application/json');
             showToast('JSON exported', 'success');
+        }
+
+        // EXPORT ZIP — all originals, masks, data.csv and data.json in one file.
+        // Reads the blobs already held in memory (same records the gallery shows),
+        // so it works with every card stored by previous versions of the app.
+        async function readCardImage(blob, fallbackUrl) {
+            if (blob instanceof Blob) {
+                try { return await blob.arrayBuffer(); } catch (_) {}
+            }
+            if (fallbackUrl) {
+                try { return await (await fetch(fallbackUrl)).arrayBuffer(); } catch (_) {}
+            }
+            return null;
+        }
+
+        let zipExportRunning = false;
+
+        async function exportZip() {
+            if (captures.length === 0 || zipExportRunning) return;
+            if (typeof JSZip === 'undefined') {
+                showToast('ZIP library not loaded', 'error');
+                return;
+            }
+            zipExportRunning = true;
+
+            const toast = document.createElement('div');
+            toast.className = 'toast success';
+            toast.textContent = 'Preparing ZIP…';
+            document.body.appendChild(toast);
+
+            try {
+                const zip = new JSZip();
+                const folderName = `canopeo-field_export_${Date.now()}`;
+                const root = zip.folder(folderName);
+                let missing = 0;
+
+                for (let i = 0; i < captures.length; i++) {
+                    const card = captures[i];
+                    toast.textContent = `Preparing ZIP… ${i + 1}/${captures.length}`;
+
+                    const original = await readCardImage(card.originalBlob, card._originalUrl);
+                    if (original) root.file(`images/canopeo-field_${card.card_id}_original.jpg`, original);
+                    else missing++;
+
+                    const mask = await readCardImage(card.classifiedBlob, card._classifiedUrl);
+                    if (mask) root.file(`masks/canopeo-field_${card.card_id}_classified.png`, mask);
+                    else if (card.classifiedBlob) missing++;
+                }
+
+                root.file('data.csv', buildCsv());
+                root.file('data.json', buildJson());
+
+                // STORE: JPEG/PNG are already compressed — deflating them only burns battery
+                const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+                const filename = `${folderName}.zip`;
+
+                if (typeof saveAs === 'function') saveAs(zipBlob, filename);
+                else downloadFile(zipBlob, filename, 'application/zip');
+
+                showToast(missing
+                    ? `ZIP downloaded (${missing} image${missing === 1 ? '' : 's'} could not be read)`
+                    : 'ZIP downloaded', missing ? 'error' : 'success', 4000);
+            } catch (error) {
+                console.error('ZIP export failed:', error);
+                showToast('Error creating ZIP', 'error');
+            } finally {
+                toast.remove();
+                zipExportRunning = false;
+            }
         }
         
         // EXPORT PDF MODAL — title entry + card selection
@@ -4321,7 +4394,7 @@
 
         // ── TERMS & CONDITIONS ────────────────────────────────────────────────
 
-        const APP_TC_VERSION     = '2.5.0';
+        const APP_TC_VERSION     = '2.6.0';
         const APP_TC_STORAGE_KEY = 'canopeo-field_tc_accepted_version';
 
         function tcCheckAndShow() {

@@ -1,5 +1,5 @@
 // Bump CACHE_VERSION whenever you deploy new assets.
-const CACHE_VERSION = "v2.5.0";
+const CACHE_VERSION = "v2.6.0";
 const CACHE_NAME    = `canopeo-field-${CACHE_VERSION}`;
 
 // Base path — must match the GitHub Pages subdirectory.
@@ -24,6 +24,8 @@ const LIB_ASSETS = [
   `${BASE}/libs/swiper/swiper-bundle.min.css`,
   `${BASE}/libs/jsqr/jsqr.js`,
   `${BASE}/libs/jspdf/jspdf.min.js`,
+  `${BASE}/libs/jszip.min.js`,
+  `${BASE}/libs/FileSaver.js`,
 ];
 
 // ── Icon assets ───────────────────────────────────────────────────────────────
