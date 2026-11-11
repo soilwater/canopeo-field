@@ -1933,6 +1933,10 @@
 
                 <h3>Version</h3>
                 <p id="about-version-lbl"></p>
+                <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+                    <button class="btn" id="checkUpdateBtn" style="flex:none;" onclick="checkForUpdate()">Check for updates</button>
+                    <span id="updateStatus" role="status" style="font-size:0.8rem; color:var(--text-light);"></span>
+                </div>
 
                 <h3>Original Reference</h3>
                 <p>Patrignani, A., &amp; Ochsner, T. E. (2015). Canopeo: A powerful new tool for measuring fractional green canopy cover. <em>Agronomy Journal</em>, 107(6), 2312–2320. <a href="https://doi.org/10.2134/agronj15.0150" target="_blank" rel="noopener">doi.org/10.2134/agronj15.0150</a></p>
@@ -1944,6 +1948,25 @@
                 <h3>License</h3>
                 <p>Canopeo-Field is open-source and non-commercial, distributed under the <a href="https://polyformproject.org/licenses/noncommercial/1.0.0" target="_blank" rel="noopener">PolyForm Noncommercial License 1.0.0</a>.</p>
 
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Modal -->
+    <div class="modal" id="updateModal">
+        <div class="modal-content" style="max-width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">Update available</div>
+                <button class="modal-close" onclick="dismissUpdate()">×</button>
+            </div>
+            <div class="modal-body tc-body">
+                <p id="updateModalText"></p>
+                <p>Your saved images and settings are kept. If you choose "Not now", you keep using the current version and can update later from the About window.</p>
+                <p id="updateModalError" style="color:var(--error); display:none;"></p>
+                <div style="display:flex; gap:0.75rem; justify-content:flex-end; margin-top:1rem;">
+                    <button class="btn" id="updateLaterBtn" onclick="dismissUpdate()">Not now</button>
+                    <button class="btn btn-primary" id="updateNowBtn" onclick="applyUpdate()">Update now</button>
+                </div>
             </div>
         </div>
     </div>
@@ -4452,13 +4475,20 @@
 
         // ── TERMS & CONDITIONS ────────────────────────────────────────────────
 
+        // Version of the app itself. This is the ONLY thing to change for a
+        // release: "Check for updates" reads it from the published index.html
+        // and compares it with the copy that is running.
+        const APP_VERSION = '2.8.0';
+
+        // Version of the Terms & Conditions. Changing it makes every user
+        // accept the terms again, so it moves only when the terms change.
         const APP_TC_VERSION     = '2.6.0';
         const APP_TC_STORAGE_KEY = 'canopeo-field_tc_accepted_version';
 
         function tcCheckAndShow() {
             const accepted = localStorage.getItem(APP_TC_STORAGE_KEY);
             document.getElementById('tc-version-lbl').textContent = 'Version ' + APP_TC_VERSION;
-            document.getElementById('about-version-lbl').textContent = 'Version ' + APP_TC_VERSION;
+            document.getElementById('about-version-lbl').textContent = 'Version ' + APP_VERSION;
             if (accepted === APP_TC_VERSION) {
                 startApp();
             } else {
@@ -4498,20 +4528,105 @@
                 try { initGeojsonControls(); } catch(e) { console.warn('GeoJSON controls init failed:', e); }
                 startGPS();
                 if ('serviceWorker' in navigator) {
+                    // The service worker keeps the installed copy of the app; it
+                    // never replaces it by itself (see checkForUpdate below).
                     navigator.serviceWorker.register('sw.js', { scope: '/canopeo-field/' })
-                      .then(reg => {
-                        reg.addEventListener('updatefound', () => {
-                          const newWorker = reg.installing;
-                          newWorker.addEventListener('statechange', () => {
-                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                              showToast('Update available — reload to apply', 'info', 6000);
-                            }
-                          });
-                        });
-                      })
                       .catch(err => console.warn('SW registration failed:', err));
                 }
             });
+        }
+
+        // ── APP UPDATES (only when the user asks) ─────────────────────────────
+        // The app never updates itself. "Check for updates" in the About window
+        // reads the version of the published app; if it differs from the one
+        // running, the user is asked and can decline. Accepting has the service
+        // worker download the complete new copy and then reloads the app.
+        let publishedVersion = null;
+
+        function setUpdateStatus(text) {
+            const el = document.getElementById('updateStatus');
+            if (el) el.textContent = text;
+        }
+
+        // Reads APP_VERSION from the published index.html, bypassing both the
+        // installed copy and the browser's HTTP cache.
+        async function fetchPublishedVersion() {
+            const res = await fetch('index.html?update-check=' + Date.now(), { cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const match = /const APP_VERSION\s*=\s*'([^']+)'/.exec(await res.text());
+            if (!match) throw new Error('No version found in the published app');
+            return match[1];
+        }
+
+        async function checkForUpdate() {
+            const btn = document.getElementById('checkUpdateBtn');
+            if (navigator.onLine === false) {
+                setUpdateStatus('You are offline. Connect to the internet and try again.');
+                return;
+            }
+            btn.disabled = true;
+            setUpdateStatus('Checking…');
+            try {
+                publishedVersion = await fetchPublishedVersion();
+                if (publishedVersion === APP_VERSION) {
+                    setUpdateStatus('You have the latest version.');
+                } else {
+                    setUpdateStatus('Version ' + publishedVersion + ' is available.');
+                    document.getElementById('updateModalText').textContent =
+                        'Version ' + publishedVersion + ' of Canopeo-Field is available. You are using version ' + APP_VERSION + '.';
+                    document.getElementById('updateModalError').style.display = 'none';
+                    document.getElementById('updateModal').classList.add('active');
+                }
+            } catch (err) {
+                console.warn('Update check failed:', err);
+                setUpdateStatus('Could not check for updates. Try again when you have a connection.');
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function dismissUpdate() {
+            document.getElementById('updateModal').classList.remove('active');
+        }
+
+        // Asks the service worker to download the new copy. Resolves once the
+        // new copy is installed; rejects (leaving the current copy untouched)
+        // if any file could not be downloaded.
+        function requestUpdateFromWorker(worker) {
+            return new Promise((resolve, reject) => {
+                const channel = new MessageChannel();
+                const timer = setTimeout(() => reject(new Error('Timed out')), 120000);
+                channel.port1.onmessage = (event) => {
+                    clearTimeout(timer);
+                    if (event.data && event.data.ok) resolve();
+                    else reject(new Error((event.data && event.data.error) || 'Update failed'));
+                };
+                worker.postMessage({ type: 'APPLY_UPDATE' }, [channel.port2]);
+            });
+        }
+
+        async function applyUpdate() {
+            const nowBtn = document.getElementById('updateNowBtn');
+            const laterBtn = document.getElementById('updateLaterBtn');
+            const errEl = document.getElementById('updateModalError');
+            errEl.style.display = 'none';
+            nowBtn.disabled = true; laterBtn.disabled = true;
+            nowBtn.textContent = 'Downloading…';
+            try {
+                if ('serviceWorker' in navigator) {
+                    const reg = await navigator.serviceWorker.getRegistration();
+                    if (reg && reg.active) await requestUpdateFromWorker(reg.active);
+                }
+                // With no service worker the browser loads the published app
+                // directly, so reloading is all that is needed.
+                window.location.reload();
+            } catch (err) {
+                console.warn('Update failed:', err);
+                errEl.textContent = 'The update could not be downloaded. You are still on version ' + APP_VERSION + '. Check your connection and try again.';
+                errEl.style.display = 'block';
+                nowBtn.disabled = false; laterBtn.disabled = false;
+                nowBtn.textContent = 'Update now';
+            }
         }
 
         // MAP state — declared before tcCheckAndShow so startApp() can use them

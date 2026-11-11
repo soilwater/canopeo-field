@@ -1,12 +1,28 @@
-// Bump CACHE_VERSION whenever you deploy new assets.
-const CACHE_VERSION = "v2.7.0";
-const CACHE_NAME    = `canopeo-field-${CACHE_VERSION}`;
+// Canopeo-Field service worker.
+//
+// The app is updated only when the user asks for it:
+//
+//   • The installed copy of the app lives in one cache (APP_CACHE) and is
+//     always served from there, online or offline. Opening the app never
+//     fetches a newer version by itself.
+//   • "Check for updates" in the About window compares the running version
+//     with the published one. If the user accepts, the page sends
+//     APPLY_UPDATE and this worker downloads the complete new copy into a
+//     staging cache, swaps it in only if every file arrived, and the page
+//     reloads. If the user declines, nothing changes.
+//
+// Releasing a new version therefore needs only one edit: APP_VERSION in
+// index.html. This file does not need a version bump. Change it only when the
+// worker's own logic or the asset lists below change; replacing the worker
+// does not replace an installed copy of the app.
+
+const APP_CACHE     = "canopeo-field-app";
+const STAGING_CACHE = "canopeo-field-staging";
 
 // Base path — must match the GitHub Pages subdirectory.
 const BASE = "/canopeo-field";
 
 // ── Shell assets ──────────────────────────────────────────────────────────────
-// Fetched and cached at install time. If any fail, the SW won't install.
 const SHELL_ASSETS = [
   `${BASE}/`,
   `${BASE}/index.html`,
@@ -14,9 +30,7 @@ const SHELL_ASSETS = [
 ];
 
 // ── Library assets ────────────────────────────────────────────────────────────
-// Self-hosted (no longer CDN-loaded), so they're precached alongside the shell —
-// install fails loudly rather than the app silently missing map/PDF/QR features
-// after a spotty first load.
+// Self-hosted, so they are part of the installed copy alongside the shell.
 const LIB_ASSETS = [
   `${BASE}/libs/leaflet/leaflet.js`,
   `${BASE}/libs/leaflet/leaflet.css`,
@@ -28,15 +42,7 @@ const LIB_ASSETS = [
   `${BASE}/libs/FileSaver.js`,
 ];
 
-// ── Icon assets ───────────────────────────────────────────────────────────────
-// Cached lazily on first fetch (not required for install).
-const ICON_PATHS = [
-  `${BASE}/icons/icon.ico`,
-  `${BASE}/icons/icon_64.png`,
-  `${BASE}/icons/icon_128.png`,
-  `${BASE}/icons/icon_256.png`,
-  `${BASE}/icons/icon_512.png`,
-];
+const APP_ASSETS = [...SHELL_ASSETS, ...LIB_ASSETS];
 
 // ── Google Fonts origins ──────────────────────────────────────────────────────
 const FONTS_ORIGINS = [
@@ -44,12 +50,31 @@ const FONTS_ORIGINS = [
   "https://fonts.gstatic.com",
 ];
 
+// Download every app asset into `cacheName`, bypassing the browser's HTTP
+// cache so the files are the ones currently published. Rejects if any file
+// fails, leaving whatever was in the cache before untouched by the caller.
+async function downloadAppInto(cacheName) {
+  const cache = await caches.open(cacheName);
+  await Promise.all(APP_ASSETS.map(async url => {
+    const response = await fetch(url, { cache: "reload" });
+    if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
+    await cache.put(url, response);
+  }));
+}
+
+async function hasInstalledApp() {
+  const cache = await caches.open(APP_CACHE);
+  return !!(await cache.match(`${BASE}/index.html`));
+}
+
 // ── Install ───────────────────────────────────────────────────────────────────
+// First install on this device (or first run after the releases that used
+// per-version caches): download the app. If a copy is already installed, keep
+// it — only the user replaces it.
 self.addEventListener("install", event => {
   self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll([...SHELL_ASSETS, ...LIB_ASSETS]))
+    hasInstalledApp().then(installed => installed ? null : downloadAppInto(APP_CACHE))
   );
 });
 
@@ -58,14 +83,53 @@ self.addEventListener("activate", event => {
   event.waitUntil(
     Promise.all([
       clients.claim(),
+      // Remove caches left by earlier releases ("canopeo-field-v2.7.0", …)
+      // and any staging cache from an interrupted update.
       caches.keys().then(keys =>
         Promise.all(keys.map(key => {
-          if (key !== CACHE_NAME) return caches.delete(key);
+          if (key !== APP_CACHE) return caches.delete(key);
         }))
       ),
     ])
   );
 });
+
+// ── Update on request ─────────────────────────────────────────────────────────
+// The page posts { type: "APPLY_UPDATE" } with a MessagePort and gets back
+// { ok: true } or { ok: false, error }.
+self.addEventListener("message", event => {
+  if (!event.data || event.data.type !== "APPLY_UPDATE") return;
+  const port = event.ports && event.ports[0];
+  event.waitUntil(
+    applyUpdate()
+      .then(() => { if (port) port.postMessage({ ok: true }); })
+      .catch(err => { if (port) port.postMessage({ ok: false, error: String(err && err.message || err) }); })
+  );
+});
+
+async function applyUpdate() {
+  await caches.delete(STAGING_CACHE);
+  try {
+    // 1. Get the complete new copy first. A dropped connection stops here and
+    //    the installed copy is untouched.
+    await downloadAppInto(STAGING_CACHE);
+
+    // 2. Swap it in.
+    const staging = await caches.open(STAGING_CACHE);
+    const app     = await caches.open(APP_CACHE);
+    for (const url of APP_ASSETS) {
+      const response = await staging.match(url);
+      await app.put(url, response);
+    }
+    // Drop files cached on demand (icons, …) so they are fetched fresh too.
+    for (const request of await app.keys()) {
+      const path = new URL(request.url).pathname;
+      if (!APP_ASSETS.includes(path)) await app.delete(request);
+    }
+  } finally {
+    await caches.delete(STAGING_CACHE);
+  }
+}
 
 // ── Fetch ─────────────────────────────────────────────────────────────────────
 self.addEventListener("fetch", event => {
@@ -85,32 +149,23 @@ self.addEventListener("fetch", event => {
   // Only handle requests under /canopeo-field/
   if (!url.pathname.startsWith(BASE)) return;
 
-  // HTML navigations: network-first, fall back to cached shell
+  // The update check must see what is published, not the installed copy.
+  if (url.searchParams.has("update-check")) return;
+
+  // Opening the app: always the installed copy.
   if (event.request.mode === "navigate") {
-    event.respondWith(networkFirstThenCache(event.request, `${BASE}/index.html`));
+    event.respondWith(installedThenNetwork(`${BASE}/index.html`, event.request));
     return;
   }
 
-  // Icons: cache-first (fine to serve stale indefinitely)
-  if (ICON_PATHS.some(p => url.pathname === p)) {
-    event.respondWith(cacheFirstThenNetwork(event.request));
-    return;
-  }
-
-  // manifest.json: stale-while-revalidate
-  if (url.pathname === `${BASE}/manifest.json`) {
-    event.respondWith(staleWhileRevalidate(event.request));
-    return;
-  }
-
-  // Everything else under /canopeo-field/: cache-first
-  event.respondWith(cacheFirstThenNetwork(event.request));
+  // Everything else under /canopeo-field/: installed copy, else network.
+  event.respondWith(installedThenNetwork(event.request, event.request));
 });
 
 // ── Strategies ────────────────────────────────────────────────────────────────
 
 async function staleWhileRevalidate(request) {
-  const cache  = await caches.open(CACHE_NAME);
+  const cache  = await caches.open(APP_CACHE);
   const cached = await cache.match(request);
 
   const networkPromise = fetch(request)
@@ -129,27 +184,17 @@ async function staleWhileRevalidate(request) {
   return fresh || new Response("Resource unavailable offline", { status: 503 });
 }
 
-async function networkFirstThenCache(request, fallbackPath) {
-  const cache = await caches.open(CACHE_NAME);
-  try {
-    const response = await fetch(request);
-    if (response.ok) cache.put(request, response.clone());
-    return response;
-  } catch {
-    const cached = await cache.match(request)
-                || await cache.match(fallbackPath);
-    return cached || new Response("Offline", { status: 503 });
-  }
-}
-
-async function cacheFirstThenNetwork(request) {
-  const cache  = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
+// Serve `cacheKey` from the installed copy. If it is not there (an icon not
+// fetched yet, or the cache was cleared by the browser), fetch `request` and
+// keep it.
+async function installedThenNetwork(cacheKey, request) {
+  const cache  = await caches.open(APP_CACHE);
+  const cached = await cache.match(cacheKey);
   if (cached) return cached;
 
   try {
     const response = await fetch(request);
-    if (response.ok) cache.put(request, response.clone());
+    if (response.ok) cache.put(cacheKey, response.clone());
     return response;
   } catch {
     return new Response("Offline", { status: 503 });
