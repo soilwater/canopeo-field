@@ -1151,6 +1151,25 @@
             border-color: var(--accent);
             color: var(--accent);
         }
+        /* Info screen (fourth screen) */
+        .info-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 1.25rem 2rem;
+        }
+        .info-heading {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border);
+        }
+        .info-heading:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+        .info-text {
+            font-size: 0.8125rem;
+            line-height: 1.6;
+            margin-bottom: 0.75rem;
+        }
         .guide-section {
             margin-bottom: 1.125rem;
         }
@@ -1610,6 +1629,7 @@
             <div class="dot active" data-screen="0"></div>
             <div class="dot" data-screen="1"></div>
             <div class="dot" data-screen="2"></div>
+            <div class="dot" data-screen="3"></div>
         </div>
         
         <div class="swiper">
@@ -1628,11 +1648,8 @@
                         
                         
                         <div class="header-buttons">
-                            <button class="guidelines-btn" onclick="document.getElementById('guidelinesModal').classList.add('active')">
+                            <button class="guidelines-btn" onclick="swiper.slideTo(3)">
                                 &#8594; Guidelines
-                            </button>
-                            <button class="guidelines-btn" onclick="document.getElementById('aboutModal').classList.add('active')">
-                                About
                             </button>
                         </div>
                         <div class="capture-text">
@@ -1650,9 +1667,6 @@
                                 <div class="count-badge">Cards:</div>
                                 <div class="count-badge" id="cardCount">0</div>
                                 <div class="count-badge" id="storageUsage" style="display:none;"></div>
-                                <button id="settingsGearBtn" onclick="openSettingsModal()" title="Upload settings" style="background:none;border:none;cursor:pointer;padding:0.2rem;color:var(--text-light);display:flex;align-items:center;">
-                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                                </button>
                             </div>
                         </div>
                         
@@ -1696,6 +1710,83 @@
                         
                         <div id="map" class="no-swipe" style="flex: 1; width: 100%; max-height: 68dvh; max-height: 68vh;"></div>
                         <div style="height:2.5rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-top:1px solid var(--border);"><span style="width:2rem;height:3px;border-radius:2px;background:var(--border);display:block;"></span></div>
+                    </div>
+                </div>
+
+                <!-- Screen 4: Info (guidelines, upload settings, about) -->
+                <div class="swiper-slide" data-screen="info">
+                    <div class="gallery-screen">
+                        <div class="gallery-header">
+                            <div class="gallery-title">Info</div>
+                        </div>
+                        <div class="info-body">
+
+                            <div class="info-heading">Guidelines</div>
+                        <div class="guide-section">
+                            <div class="guide-section-title">📷 Camera position</div>
+                            <ul class="guide-list">
+                                <li>Hold the phone parallel to the ground, and frame the crop canopy pointing straight down</li>
+                                <li>Keep it between waist and shoulder height (~0.8–1.5 m)</li>
+                                <li>Avoid tilting — even a small angle reduces accuracy</li>
+                            </ul>
+                        </div>
+
+                        <div class="guide-section">
+                            <div class="guide-section-title">🚫 What to avoid</div>
+                            <ul class="guide-list">
+                                <li>Blurry images — hold still before tapping</li>
+                                <li>Feet, tools, or other objects in the frame</li>
+                                <li>Heavy shadows cast by yourself or equipment</li>
+                                <li>Avoid low sun angles (early morning, late afternoon)</li>
+                            </ul>
+                        </div>
+
+                        <div class="guide-section">
+                            <div class="guide-section-title">📍 Location &amp; data</div>
+                            <ul class="guide-list">
+                                <li>GPS coordinates and timestamp are recorded automatically</li>
+                                <li>Wait for the GPS indicator to turn green before capturing</li>
+                                <li>Images are saved locally on your device — upload is optional</li>
+                            </ul>
+                        </div>
+
+                        <div class="guide-section">
+                            <div class="guide-section-title">📲 Offline use</div>
+                            <ul class="guide-list">
+                                <li>Canopeo-Field works fully offline once loaded</li>
+                                <li>On iPhone: tap Share → Add to Home Screen</li>
+                                <li>On Android: tap the browser menu → Install app</li>
+                            </ul>
+                        </div>
+
+                            <div class="info-heading">Upload settings</div>
+                            <p class="info-text">Uploading is optional. Set a server, username and token here if you were invited to share your images.</p>
+                            <button class="btn" style="flex:none;" onclick="openSettingsModal()">Open upload settings</button>
+
+                            <div class="info-heading">About</div>
+                            <div class="tc-body" style="padding:0; overflow:visible;">
+                        <p>Canopeo-Field lets you measure fractional green canopy cover directly from your phone's camera — fully offline, with results and imagery stored on your device.</p>
+                        <p>Canopeo-Field was developed jointly at Kansas State University and Oklahoma State University.</p>
+
+                        <h3>Version</h3>
+                        <p id="about-version-lbl"></p>
+                        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.75rem;">
+                            <button class="btn" style="flex:none;" onclick="checkForUpdate(true)">Check for updates</button>
+                            <span id="updateStatus" role="status" style="font-size:0.8rem; color:var(--text-light);"></span>
+                        </div>
+
+                        <h3>Original Reference</h3>
+                        <p>Patrignani, A., &amp; Ochsner, T. E. (2015). Canopeo: A powerful new tool for measuring fractional green canopy cover. <em>Agronomy Journal</em>, 107(6), 2312–2320. <a href="https://doi.org/10.2134/agronj15.0150" target="_blank" rel="noopener">doi.org/10.2134/agronj15.0150</a></p>
+
+                        <h3>Developers</h3>
+                        <p>A. Patrignani &amp; T. E. Ochsner</p>
+                        <p>Feel free to contact: <a href="mailto:andrespatrignani@ksu.edu">andrespatrignani@ksu.edu</a> or <a href="mailto:tyson.ochsner@okstate.edu">tyson.ochsner@okstate.edu</a></p>
+
+                        <h3>License</h3>
+                        <p>Canopeo-Field is open-source and non-commercial, distributed under the <a href="https://polyformproject.org/licenses/noncommercial/1.0.0" target="_blank" rel="noopener">PolyForm Noncommercial License 1.0.0</a>.</p>
+                            </div>
+
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1869,89 +1960,6 @@
         </div>
     </div>
     
-    <!-- Guidelines Modal -->
-    <div class="modal" id="guidelinesModal">
-        <div class="modal-content" style="max-width:460px; max-height:88vh;">
-            <div class="modal-header">
-                <div class="modal-title">Guidelines</div>
-                <button class="modal-close" onclick="document.getElementById('guidelinesModal').classList.remove('active')">×</button>
-            </div>
-            <div class="modal-body" style="overflow-y:auto; max-height:calc(88vh - 64px);">
-
-                <div class="guide-section">
-                    <div class="guide-section-title">📷 Camera position</div>
-                    <ul class="guide-list">
-                        <li>Hold the phone parallel to the ground, and frame the crop canopy pointing straight down</li>
-                        <li>Keep it between waist and shoulder height (~0.8–1.5 m)</li>
-                        <li>Avoid tilting — even a small angle reduces accuracy</li>
-                    </ul>
-                </div>
-
-                <div class="guide-section">
-                    <div class="guide-section-title">🚫 What to avoid</div>
-                    <ul class="guide-list">
-                        <li>Blurry images — hold still before tapping</li>
-                        <li>Feet, tools, or other objects in the frame</li>
-                        <li>Heavy shadows cast by yourself or equipment</li>
-                        <li>Avoid low sun angles (early morning, late afternoon)</li>
-                    </ul>
-                </div>
-
-                <div class="guide-section">
-                    <div class="guide-section-title">📍 Location &amp; data</div>
-                    <ul class="guide-list">
-                        <li>GPS coordinates and timestamp are recorded automatically</li>
-                        <li>Wait for the GPS indicator to turn green before capturing</li>
-                        <li>Images are saved locally on your device — upload is optional</li>
-                    </ul>
-                </div>
-
-                <div class="guide-section">
-                    <div class="guide-section-title">📲 Offline use</div>
-                    <ul class="guide-list">
-                        <li>Canopeo-Field works fully offline once loaded</li>
-                        <li>On iPhone: tap Share → Add to Home Screen</li>
-                        <li>On Android: tap the browser menu → Install app</li>
-                    </ul>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- About Modal -->
-    <div class="modal" id="aboutModal">
-        <div class="modal-content" style="max-width:460px; max-height:88vh;">
-            <div class="modal-header">
-                <div class="modal-title">About Canopeo-Field</div>
-                <button class="modal-close" onclick="document.getElementById('aboutModal').classList.remove('active')">×</button>
-            </div>
-            <div class="modal-body tc-body" style="overflow-y:auto; max-height:calc(88vh - 64px);">
-
-                <p>Canopeo-Field lets you measure fractional green canopy cover directly from your phone's camera — fully offline, with results and imagery stored on your device.</p>
-                <p>Canopeo-Field was developed jointly at Kansas State University and Oklahoma State University.</p>
-
-                <h3>Version</h3>
-                <p id="about-version-lbl"></p>
-                <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap; margin-bottom:0.75rem;">
-                    <button class="btn" style="flex:none;" onclick="checkForUpdate(true)">Check for updates</button>
-                    <span id="updateStatus" role="status" style="font-size:0.8rem; color:var(--text-light);"></span>
-                </div>
-
-                <h3>Original Reference</h3>
-                <p>Patrignani, A., &amp; Ochsner, T. E. (2015). Canopeo: A powerful new tool for measuring fractional green canopy cover. <em>Agronomy Journal</em>, 107(6), 2312–2320. <a href="https://doi.org/10.2134/agronj15.0150" target="_blank" rel="noopener">doi.org/10.2134/agronj15.0150</a></p>
-
-                <h3>Developers</h3>
-                <p>A. Patrignani &amp; T. E. Ochsner</p>
-                <p>Feel free to contact: <a href="mailto:andrespatrignani@ksu.edu">andrespatrignani@ksu.edu</a> or <a href="mailto:tyson.ochsner@okstate.edu">tyson.ochsner@okstate.edu</a></p>
-
-                <h3>License</h3>
-                <p>Canopeo-Field is open-source and non-commercial, distributed under the <a href="https://polyformproject.org/licenses/noncommercial/1.0.0" target="_blank" rel="noopener">PolyForm Noncommercial License 1.0.0</a>.</p>
-
-            </div>
-        </div>
-    </div>
-
     <!-- Classification/Metadata Modal -->
     <div class="modal" id="classifyModal">
         <div class="modal-content" style="max-width: 500px; max-height: 90vh;">
@@ -4458,7 +4466,7 @@
 
         // Version of the app. Change it for every release: it is what installed
         // copies compare against to know a newer version is published.
-        const APP_VERSION = '2.9.0';
+        const APP_VERSION = '2.10.0';
 
         // Version of the Terms & Conditions. Changing it makes every user
         // accept the terms again, so it moves only when the terms change.

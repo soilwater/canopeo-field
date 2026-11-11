@@ -24,6 +24,6 @@ Cards captured with earlier versions of the app are included automatically after
 
 ## Releasing a new version
 
-Change `APP_VERSION` in `index.html` and publish. Installed copies pick it up the next time the app is opened or brought back to the foreground while online. **About → Check for updates** forces the check.
+Change `APP_VERSION` in `index.html` and publish. Installed copies pick it up the next time the app is opened or brought back to the foreground while online. **Check for updates** on the Info screen (the last screen) forces the check.
 
 Also bump `CACHE_VERSION` in `sw.js` when a file under `libs/` changes. `APP_TC_VERSION` is the version of the Terms & Conditions; changing it makes every user accept the terms again.
