@@ -486,7 +486,7 @@
             margin-top: 0.1rem;
         }
         
-        .keywords-container {
+        .tags-container {
             border: 1px solid var(--border);
             border-radius: 6px;
             padding: 0.5rem;
@@ -494,14 +494,14 @@
             min-height: 80px;
         }
         
-        .selected-keywords {
+        .selected-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 0.375rem;
             margin-bottom: 0.5rem;
         }
         
-        .keyword-pill {
+        .tag-pill {
             display: inline-flex;
             align-items: center;
             gap: 0.375rem;
@@ -513,7 +513,7 @@
             cursor: default;
         }
         
-        .keyword-pill button {
+        .tag-pill button {
             background: none;
             border: none;
             color: white;
@@ -526,11 +526,11 @@
             opacity: 0.8;
         }
         
-        .keyword-pill button:hover {
+        .tag-pill button:hover {
             opacity: 1;
         }
         
-        .keyword-input {
+        .tag-input {
             width: 100%;
             border: none;
             outline: none;
@@ -539,14 +539,14 @@
             padding: 0.25rem 0;
         }
         
-        .suggested-keywords {
+        .suggested-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 0.375rem;
             margin-top: 0.5rem;
         }
         
-        .suggested-keyword {
+        .suggested-tag {
             background: var(--bg);
             color: var(--text);
             padding: 0.375rem 0.625rem;
@@ -562,20 +562,20 @@
         
         /* Hover only on real pointer devices — prevents sticky green on mobile tap */
         @media (hover: hover) {
-            .suggested-keyword:hover {
+            .suggested-tag:hover {
                 background: var(--accent);
                 color: white;
                 border-color: var(--accent);
             }
-            .suggested-keyword .chip-del:hover { opacity: 1; color: var(--error); }
+            .suggested-tag .chip-del:hover { opacity: 1; color: var(--error); }
         }
         /* Touch feedback via :active — clears immediately on release */
-        .suggested-keyword:active {
+        .suggested-tag:active {
             background: var(--accent);
             color: white;
             border-color: var(--accent);
         }
-        .suggested-keyword .chip-del {
+        .suggested-tag .chip-del {
             background: none; border: none; cursor: pointer;
             font-size: 1.25rem; line-height: 1; color: var(--text);
             opacity: 0.75;
@@ -585,7 +585,7 @@
             border-left: 1px solid var(--text);
         }
         
-        .keyword-counter {
+        .tag-counter {
             position: absolute;
             top: 0.5rem;
             right: 0.5rem;
@@ -595,7 +595,7 @@
             z-index: 5;
         }
         
-        .keyword-counter.limit-reached {
+        .tag-counter.limit-reached {
             color: var(--error);
         }
         
@@ -729,14 +729,14 @@
 
         }
         
-        .card-keywords {
+        .card-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 0.375rem;
             margin-top: 0.75rem;
         }
         
-        .keyword-tag {
+        .tag-chip {
             background: var(--bg);
             color: var(--text);
             padding: 0.25rem 0.5rem;
@@ -1086,7 +1086,7 @@
             margin-bottom: 0.25rem;
         }
         
-        .modal .keywords-container {
+        .modal .tags-container {
             position: relative;
         }
         
@@ -1767,13 +1767,13 @@
                     <textarea class="form-textarea" id="editComments" maxlength="200"></textarea>
                 </div>
                 <div class="form-group form-group-divided">
-                    <label class="form-label">Keywords</label>
-                    <div class="keywords-container">
-                        <div class="keyword-counter" id="editKeywordCounter">0/5</div>
-                        <div class="selected-keywords" id="editSelectedKeywords"></div>
-                        <input type="text" class="keyword-input" id="editKeywordInput" placeholder="Type keyword and press Enter">
+                    <label class="form-label">Tags</label>
+                    <div class="tags-container">
+                        <div class="tag-counter" id="editTagCounter">0/5</div>
+                        <div class="selected-tags" id="editSelectedTags"></div>
+                        <input type="text" class="tag-input" id="editTagInput" placeholder="Type tag and press Enter">
                     </div>
-                    <div class="suggested-keywords" id="editSuggestedKeywords"></div>
+                    <div class="suggested-tags" id="editSuggestedTags"></div>
                 </div>
 
                 <div class="form-group form-group-divided">
@@ -2073,13 +2073,13 @@
                 </div>
                 
                 <div class="form-group form-group-divided">
-                    <label class="form-label">Keywords</label>
-                    <div class="keywords-container">
-                        <div class="keyword-counter" id="keywordCounter">0/5</div>
-                        <div class="selected-keywords" id="selectedKeywords"></div>
-                        <input type="text" class="keyword-input" id="keywordInput" placeholder="Type keyword and press Enter">
+                    <label class="form-label">Tags</label>
+                    <div class="tags-container">
+                        <div class="tag-counter" id="tagCounter">0/5</div>
+                        <div class="selected-tags" id="selectedTags"></div>
+                        <input type="text" class="tag-input" id="tagInput" placeholder="Type tag and press Enter">
                     </div>
-                    <div class="suggested-keywords" id="suggestedKeywords"></div>
+                    <div class="suggested-tags" id="suggestedTags"></div>
                 </div>
                 
                 <div class="form-group form-group-divided">
@@ -2188,6 +2188,11 @@
                 card.canopy_cover = card.percentage;
             }
             delete card.percentage;
+            // Migration: tags were previously stored under `keywords`.
+            if (card.tags == null && card.keywords != null) {
+                card.tags = card.keywords;
+            }
+            delete card.keywords;
             revokeCaptureObjectUrls(card);
             card._originalUrl = card.originalBlob instanceof Blob
                 ? URL.createObjectURL(card.originalBlob) : '';
@@ -2258,6 +2263,51 @@
             });
         }
         
+        // ── ONE-TIME UPGRADE: `keywords` → `tags` ────────────────────────────
+        // Rewrites cards saved by releases before the rename so the stored
+        // records use `tags`. Runs in a single transaction (all-or-nothing) and
+        // only until it has succeeded once on this device. If it fails, cards
+        // still display correctly via the fallback in hydrateCaptureForUI and
+        // the upgrade is retried on the next launch.
+        // Removable in a later release, once installed copies have run it.
+        const TAGS_UPGRADE_FLAG = 'canopeo-field_tags_upgraded';
+
+        function upgradeStoredCardsToTags() {
+            return new Promise((resolve) => {
+                let flagged = false;
+                try { flagged = localStorage.getItem(TAGS_UPGRADE_FLAG) === '1'; } catch (_) {}
+                if (flagged) { resolve(); return; }
+                try {
+                    const transaction = db.transaction([storeName], 'readwrite');
+                    const request = transaction.objectStore(storeName).openCursor();
+                    request.onsuccess = () => {
+                        const cursor = request.result;
+                        if (!cursor) return;
+                        const card = cursor.value;
+                        if ('keywords' in card) {
+                            if (card.tags == null) card.tags = card.keywords;
+                            delete card.keywords;
+                            cursor.update(card);
+                        }
+                        cursor.continue();
+                    };
+                    transaction.oncomplete = () => {
+                        try { localStorage.setItem(TAGS_UPGRADE_FLAG, '1'); } catch (_) {}
+                        resolve();
+                    };
+                    const fail = () => {
+                        console.warn('Tags upgrade did not complete:', transaction.error);
+                        resolve();
+                    };
+                    transaction.onerror = fail;
+                    transaction.onabort = fail;
+                } catch (e) {
+                    console.warn('Tags upgrade skipped:', e);
+                    resolve();
+                }
+            });
+        }
+
         function saveCapture(capture) {
             return new Promise((resolve, reject) => {
                 const transaction = db.transaction([storeName], 'readwrite');
@@ -2345,7 +2395,7 @@
         let editingCardId = null;
         let editingCardSnapshot = null;  // annotation values at the time the edit modal opened
         let liveLocation = null;  // continuously updated by watchPosition
-        let editKeywords = [];  // declared early — used in renderSuggestedKeywords
+        let editTags = [];  // declared early — used in renderSuggestedTags
         
         const colorMap = {
             green:    { r: 57,  g: 255, b: 20  },   // neon green (lime)
@@ -2637,7 +2687,7 @@
             el.innerHTML = '';
             savedCrops.filter(c => c !== currentCrop).forEach(function(c) {
                 const chip = document.createElement('div');
-                chip.className = 'suggested-keyword';
+                chip.className = 'suggested-tag';
                 const lbl = document.createElement('span');
                 lbl.textContent = c; lbl.style.cursor = 'pointer';
                 lbl.addEventListener('click', function() { setCropFn(c); });
@@ -3003,42 +3053,53 @@
         // Metadata handling
         const metaComments = document.getElementById('metaComments');
         const charCount = document.getElementById('charCount');
-        const keywordInput = document.getElementById('keywordInput');
-        const selectedKeywordsDiv = document.getElementById('selectedKeywords');
-        const suggestedKeywordsDiv = document.getElementById('suggestedKeywords');
-        const keywordCounter = document.getElementById('keywordCounter');
+        const tagInput = document.getElementById('tagInput');
+        const selectedTagsDiv = document.getElementById('selectedTags');
+        const suggestedTagsDiv = document.getElementById('suggestedTags');
+        const tagCounter = document.getElementById('tagCounter');
         
-        const MAX_KEYWORDS   = 5;
-        const MAX_SAVED_KW   = 6;   // max suggestions kept in localStorage
-        let selectedKeywords = [];
+        const MAX_TAGS   = 5;
+        const MAX_SAVED_TAGS   = 6;   // max suggestions kept in localStorage
+        let selectedTags = [];
         // Use an array (not Set) so we can maintain MRU order.
-        // Most-recently-used keywords float to the front.
-        let savedKeywords = JSON.parse(localStorage.getItem('canopeo-field_keywords')) || ['irrigated','rainfed','no-till','conventional till','cover crop']
+        // Most-recently-used tags float to the front.
+        const TAGS_STORAGE_KEY = 'canopeo-field_tags';
+        // One-time upgrade: the suggestion list used to live under `_keywords`.
+        (function () {
+            const LEGACY_KEY = 'canopeo-field_keywords';
+            const legacy = localStorage.getItem(LEGACY_KEY);
+            if (legacy === null) return;
+            if (localStorage.getItem(TAGS_STORAGE_KEY) === null) {
+                localStorage.setItem(TAGS_STORAGE_KEY, legacy);
+            }
+            localStorage.removeItem(LEGACY_KEY);
+        })();
+        let savedTags = JSON.parse(localStorage.getItem(TAGS_STORAGE_KEY)) || ['irrigated','rainfed','no-till','conventional till','cover crop']
         
         metaComments.addEventListener('input', () => {
             const remaining = 200 - metaComments.value.length;
             charCount.textContent = remaining;
         });
         
-        function updateKeywordCounter() {
-            keywordCounter.textContent = `${selectedKeywords.length}/${MAX_KEYWORDS}`;
-            if (selectedKeywords.length >= MAX_KEYWORDS) {
-                keywordCounter.classList.add('limit-reached');
-                keywordInput.disabled = true;
-                keywordInput.placeholder = 'Maximum keywords reached';
+        function updateTagCounter() {
+            tagCounter.textContent = `${selectedTags.length}/${MAX_TAGS}`;
+            if (selectedTags.length >= MAX_TAGS) {
+                tagCounter.classList.add('limit-reached');
+                tagInput.disabled = true;
+                tagInput.placeholder = 'Maximum tags reached';
             } else {
-                keywordCounter.classList.remove('limit-reached');
-                keywordInput.disabled = false;
-                keywordInput.placeholder = 'Type keyword and press Enter';
+                tagCounter.classList.remove('limit-reached');
+                tagInput.disabled = false;
+                tagInput.placeholder = 'Type tag and press Enter';
             }
         }
         
-        function renderSelectedKeywords() {
-            selectedKeywordsDiv.innerHTML = '';
+        function renderSelectedTags() {
+            selectedTagsDiv.innerHTML = '';
 
-            selectedKeywords.forEach((kw) => {
+            selectedTags.forEach((kw) => {
                 const pill = document.createElement('div');
-                pill.className = 'keyword-pill';
+                pill.className = 'tag-pill';
 
                 const text = document.createElement('span');
                 text.textContent = kw;
@@ -3046,25 +3107,25 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = '×';
-                btn.addEventListener('click', () => removeKeyword(kw));
+                btn.addEventListener('click', () => removeTag(kw));
 
                 pill.appendChild(text);
                 pill.appendChild(btn);
-                selectedKeywordsDiv.appendChild(pill);
+                selectedTagsDiv.appendChild(pill);
             });
 
-            updateKeywordCounter();
+            updateTagCounter();
         }
         
-        function removeSavedKeyword(kw) {
-            savedKeywords = savedKeywords.filter(k => k !== kw);
-            localStorage.setItem('canopeo-field_keywords', JSON.stringify(savedKeywords));
-            renderSuggestedKeywords();
+        function removeSavedTag(kw) {
+            savedTags = savedTags.filter(k => k !== kw);
+            localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(savedTags));
+            renderSuggestedTags();
         }
 
         function makeSuggestedChip(kw, onAdd) {
             const wrap = document.createElement('div');
-            wrap.className = 'suggested-keyword';
+            wrap.className = 'suggested-tag';
             const label = document.createElement('span');
             label.textContent = kw;
             label.style.cursor = 'pointer';
@@ -3074,60 +3135,60 @@
             del.textContent = '×';
             del.title = 'Remove from suggestions';
             del.className = 'chip-del';
-            del.addEventListener('click', (e) => { e.stopPropagation(); removeSavedKeyword(kw); });
+            del.addEventListener('click', (e) => { e.stopPropagation(); removeSavedTag(kw); });
             wrap.appendChild(label);
             wrap.appendChild(del);
             return wrap;
         }
 
-        function renderSuggestedKeywords() {
+        function renderSuggestedTags() {
             // Classify modal suggestions
-            suggestedKeywordsDiv.innerHTML = '';
-            savedKeywords
-                .filter(kw => !selectedKeywords.includes(kw))
-                .forEach((kw) => suggestedKeywordsDiv.appendChild(makeSuggestedChip(kw, addKeyword)));
-            // Edit modal suggestions (only when addEditKeyword is available)
-            const editSugDiv = document.getElementById('editSuggestedKeywords');
-            if (editSugDiv && typeof addEditKeyword === 'function') {
+            suggestedTagsDiv.innerHTML = '';
+            savedTags
+                .filter(kw => !selectedTags.includes(kw))
+                .forEach((kw) => suggestedTagsDiv.appendChild(makeSuggestedChip(kw, addTag)));
+            // Edit modal suggestions (only when addEditTag is available)
+            const editSugDiv = document.getElementById('editSuggestedTags');
+            if (editSugDiv && typeof addEditTag === 'function') {
                 editSugDiv.innerHTML = '';
-                savedKeywords
-                    .filter(kw => !editKeywords.includes(kw))
-                    .forEach((kw) => editSugDiv.appendChild(makeSuggestedChip(kw, addEditKeyword)));
+                savedTags
+                    .filter(kw => !editTags.includes(kw))
+                    .forEach((kw) => editSugDiv.appendChild(makeSuggestedChip(kw, addEditTag)));
             }
         }
         
-        window.addKeyword = function(keyword) {
-            const kw = keyword.trim().toLowerCase();
-            if (kw && !selectedKeywords.includes(kw) && selectedKeywords.length < MAX_KEYWORDS) {
-                selectedKeywords.push(kw);
-                // Move to front (MRU), cap at MAX_SAVED_KW
-                savedKeywords = [kw, ...savedKeywords.filter(k => k !== kw)].slice(0, MAX_SAVED_KW);
-                localStorage.setItem('canopeo-field_keywords', JSON.stringify(savedKeywords));
-                renderSelectedKeywords();
-                renderSuggestedKeywords();
+        window.addTag = function(tag) {
+            const kw = tag.trim().toLowerCase();
+            if (kw && !selectedTags.includes(kw) && selectedTags.length < MAX_TAGS) {
+                selectedTags.push(kw);
+                // Move to front (MRU), cap at MAX_SAVED_TAGS
+                savedTags = [kw, ...savedTags.filter(k => k !== kw)].slice(0, MAX_SAVED_TAGS);
+                localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(savedTags));
+                renderSelectedTags();
+                renderSuggestedTags();
             }
         };
         
-        window.removeKeyword = function(keyword) {
-            selectedKeywords = selectedKeywords.filter(kw => kw !== keyword);
-            renderSelectedKeywords();
-            renderSuggestedKeywords();
+        window.removeTag = function(tag) {
+            selectedTags = selectedTags.filter(kw => kw !== tag);
+            renderSelectedTags();
+            renderSuggestedTags();
         };
         
-        keywordInput.addEventListener('keydown', (e) => {
+        tagInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                const keyword = keywordInput.value.trim();
-                if (keyword && selectedKeywords.length < MAX_KEYWORDS) {
-                    addKeyword(keyword);
-                    keywordInput.value = '';
+                const tag = tagInput.value.trim();
+                if (tag && selectedTags.length < MAX_TAGS) {
+                    addTag(tag);
+                    tagInput.value = '';
                 }
             }
         });
         
-        // Initialize keyword display
-        renderSuggestedKeywords();
-        updateKeywordCounter();
+        // Initialize tag display
+        renderSuggestedTags();
+        updateTagCounter();
 
         // Wire crop input — classify modal
         (function() {
@@ -3170,7 +3231,7 @@
             saveBtn.disabled = true;
             saveBtn.textContent = 'Saving…';
 
-            const cardId = makeObservationId(currentCapture.location);
+            const cardId = makeObservationId();
             const card = {
                 card_id: cardId,
                 timestamp: currentCapture.timestamp,
@@ -3180,7 +3241,7 @@
                 alpha: currentCapture.alpha,
                 color: currentCapture.color,
                 comments: metaComments.value,
-                keywords: selectedKeywords.join(', '),
+                tags: selectedTags.join(', '),
                 soil_moisture: selectedMoisture,
                 crop: selectedCrop,
                 bbch: selectedBbch,
@@ -3200,9 +3261,9 @@
                 captures.unshift(card);
                 
                 metaComments.value = '';
-                selectedKeywords = [];
-                renderSelectedKeywords();
-                renderSuggestedKeywords();
+                selectedTags = [];
+                renderSelectedTags();
+                renderSuggestedTags();
                 charCount.textContent = '200';
                 resetMoistureSelector();
                 resetBbchSelector();
@@ -3495,7 +3556,7 @@
             }
             
             const cardsHTML = captures.map((card) => {
-                const keywords = card.keywords ? card.keywords.split(',').map(k => k.trim()).filter(Boolean) : [];
+                const tags = card.tags ? card.tags.split(',').map(k => k.trim()).filter(Boolean) : [];
                 const moistureTxt = card.soil_moisture != null
                     ? moistureShortLabel(card.soil_moisture)
                     : null;
@@ -3535,9 +3596,9 @@
                                 </div>
                             </div>
                             ${card.comments ? `<div class="card-comment"><span style="font-size:0.7rem;color:var(--text-light);font-weight:500;">Comments: </span>${escapeHtml(card.comments)}</div>` : ''}
-                            ${keywords.length > 0 ? `
-                                <div class="card-keywords">
-                                    <span style="font-size:0.7rem;color:var(--text-light);font-weight:500;">Keywords: </span>${keywords.map(k => `<span class="keyword-tag">${escapeHtml(k)}</span>`).join('')}
+                            ${tags.length > 0 ? `
+                                <div class="card-tags">
+                                    <span style="font-size:0.7rem;color:var(--text-light);font-weight:500;">Tags: </span>${tags.map(k => `<span class="tag-chip">${escapeHtml(k)}</span>`).join('')}
                                 </div>
                             ` : ''}
                             <div class="card-actions" style="justify-content:space-between;align-items:center;">
@@ -3576,28 +3637,28 @@
             }
         };
         
-        const editKeywordInput = document.getElementById('editKeywordInput');
-        const editSelectedKeywordsDiv = document.getElementById('editSelectedKeywords');
-        const editKeywordCounter = document.getElementById('editKeywordCounter');
+        const editTagInput = document.getElementById('editTagInput');
+        const editSelectedTagsDiv = document.getElementById('editSelectedTags');
+        const editTagCounter = document.getElementById('editTagCounter');
         
-        function updateEditKeywordCounter() {
-            editKeywordCounter.textContent = `${editKeywords.length}/${MAX_KEYWORDS}`;
-            if (editKeywords.length >= MAX_KEYWORDS) {
-                editKeywordCounter.classList.add('limit-reached');
-                editKeywordInput.disabled = true;
-                editKeywordInput.placeholder = 'Maximum keywords reached';
+        function updateEditTagCounter() {
+            editTagCounter.textContent = `${editTags.length}/${MAX_TAGS}`;
+            if (editTags.length >= MAX_TAGS) {
+                editTagCounter.classList.add('limit-reached');
+                editTagInput.disabled = true;
+                editTagInput.placeholder = 'Maximum tags reached';
             } else {
-                editKeywordCounter.classList.remove('limit-reached');
-                editKeywordInput.disabled = false;
-                editKeywordInput.placeholder = 'Type keyword and press Enter';
+                editTagCounter.classList.remove('limit-reached');
+                editTagInput.disabled = false;
+                editTagInput.placeholder = 'Type tag and press Enter';
             }
         }
         
-        function renderEditSelectedKeywords() {
-            editSelectedKeywordsDiv.innerHTML = '';
-            editKeywords.forEach((kw) => {
+        function renderEditSelectedTags() {
+            editSelectedTagsDiv.innerHTML = '';
+            editTags.forEach((kw) => {
                 const pill = document.createElement('div');
-                pill.className = 'keyword-pill';
+                pill.className = 'tag-pill';
 
                 const text = document.createElement('span');
                 text.textContent = kw;
@@ -3605,39 +3666,39 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.textContent = '×';
-                btn.addEventListener('click', () => removeEditKeyword(kw));
+                btn.addEventListener('click', () => removeEditTag(kw));
 
                 pill.appendChild(text);
                 pill.appendChild(btn);
-                editSelectedKeywordsDiv.appendChild(pill);
+                editSelectedTagsDiv.appendChild(pill);
             });
-            updateEditKeywordCounter();
+            updateEditTagCounter();
         }
         
-        window.addEditKeyword = function(keyword) {
-            const kw = keyword.trim().toLowerCase();
-            if (kw && !editKeywords.includes(kw) && editKeywords.length < MAX_KEYWORDS) {
-                editKeywords.push(kw);
-                savedKeywords = [kw, ...savedKeywords.filter(k => k !== kw)].slice(0, MAX_SAVED_KW);
-                localStorage.setItem('canopeo-field_keywords', JSON.stringify(savedKeywords));
-                renderEditSelectedKeywords();
-                renderSuggestedKeywords();
+        window.addEditTag = function(tag) {
+            const kw = tag.trim().toLowerCase();
+            if (kw && !editTags.includes(kw) && editTags.length < MAX_TAGS) {
+                editTags.push(kw);
+                savedTags = [kw, ...savedTags.filter(k => k !== kw)].slice(0, MAX_SAVED_TAGS);
+                localStorage.setItem(TAGS_STORAGE_KEY, JSON.stringify(savedTags));
+                renderEditSelectedTags();
+                renderSuggestedTags();
             }
         };
         
-        window.removeEditKeyword = function(keyword) {
-            editKeywords = editKeywords.filter(kw => kw !== keyword);
-            renderEditSelectedKeywords();
-            renderSuggestedKeywords();
+        window.removeEditTag = function(tag) {
+            editTags = editTags.filter(kw => kw !== tag);
+            renderEditSelectedTags();
+            renderSuggestedTags();
         };
         
-        editKeywordInput.addEventListener('keydown', (e) => {
+        editTagInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                const keyword = editKeywordInput.value.trim();
-                if (keyword && editKeywords.length < MAX_KEYWORDS) {
-                    addEditKeyword(keyword);
-                    editKeywordInput.value = '';
+                const tag = editTagInput.value.trim();
+                if (tag && editTags.length < MAX_TAGS) {
+                    addEditTag(tag);
+                    editTagInput.value = '';
                 }
             }
         });
@@ -3650,7 +3711,7 @@
             // Snapshot annotation fields — used after save to detect what changed
             editingCardSnapshot = {
                 comments:     card.comments     || '',
-                keywords:     card.keywords     || '',
+                tags:     card.tags     || '',
                 soil_moisture: card.soil_moisture != null ? card.soil_moisture : null,
                 crop:         card.crop          || null,
                 bbch:         card.bbch          != null ? card.bbch          : null,
@@ -3658,10 +3719,10 @@
             };
             document.getElementById('editComments').value = card.comments || '';
             
-            // Parse keywords
-            editKeywords = card.keywords ? card.keywords.split(',').map(k => k.trim()).filter(Boolean) : [];
-            renderEditSelectedKeywords();
-            renderSuggestedKeywords();
+            // Parse tags
+            editTags = card.tags ? card.tags.split(',').map(k => k.trim()).filter(Boolean) : [];
+            renderEditSelectedTags();
+            renderSuggestedTags();
 
             if (card.soil_moisture != null) {
                 onEditMoistureInput(card.soil_moisture);
@@ -3684,7 +3745,7 @@
             document.getElementById('editModal').classList.remove('active');
             editingCardId = null;
             editingCardSnapshot = null;
-            editKeywords = [];
+            editTags = [];
             clearEditMoisture();
             clearEditBbch();
             clearEditHeight();
@@ -3698,7 +3759,7 @@
                 const card = captures.find(c => c.card_id === editingCardId);
                 if (card) {
                     card.comments      = document.getElementById('editComments').value;
-                    card.keywords      = editKeywords.join(', ');
+                    card.tags      = editTags.join(', ');
                     card.soil_moisture = selectedEditMoisture;
                     card.crop          = selectedEditCrop;
                     card.bbch          = selectedEditBbch;
@@ -3714,9 +3775,9 @@
                             const patch = {};
                             if (card.comments !== editingCardSnapshot.comments)
                                 patch.comments = card.comments || null;
-                            const kwNow = card.keywords || '';
-                            if (kwNow !== editingCardSnapshot.keywords)
-                                patch.keywords = kwNow;
+                            const kwNow = card.tags || '';
+                            if (kwNow !== editingCardSnapshot.tags)
+                                patch.tags = kwNow;
                             const smNow = card.soil_moisture != null ? card.soil_moisture : null;
                             if (smNow !== editingCardSnapshot.soil_moisture)
                                 patch.soil_moisture = smNow != null ? moistureShortLabel(smNow) : null;
@@ -3810,7 +3871,7 @@
         };
         
         function buildCsv() {
-            let csv ='ID,Timestamp,Latitude,Longitude,Crop Cover (%),Ratio,Soil Moisture,Crop,Crop Stage,Crop Height (cm),Comments,Keywords\n';
+            let csv ='ID,Timestamp,Latitude,Longitude,Crop Cover (%),Ratio,Soil Moisture,Crop,Crop Stage,Crop Height (cm),Comments,Tags\n';
             
             captures.forEach(c => {
                 const cropKey = normalizeWheat((c.crop || '').trim().toLowerCase());
@@ -3827,7 +3888,7 @@
                     c.bbch != null ? `"${bbchLabels[c.bbch] || c.bbch}"` : '',
                     c.crop_height != null ? c.crop_height : '',
                     `"${(c.comments || '').replace(/"/g, '""')}"`,
-                    `"${c.keywords || ''}"`
+                    `"${c.tags || ''}"`
                 ];
                 csv += row.join(',') + '\n';
             });
@@ -4042,7 +4103,7 @@
                 ['Stage', stageTxt],
                 ['Crop Height', card.crop_height != null ? `${card.crop_height} cm` : NA],
                 ['Soil Moisture', moistureTxt],
-                ['Keywords', card.keywords || NA],
+                ['Tags', card.tags || NA],
                 ['Notes', card.comments || NA]
             ];
         }
@@ -4234,17 +4295,14 @@
             setTimeout(() => toast.remove(), duration);
         }
 
-        function makeObservationId(location = null) {
-            const now = new Date();
-            const ts = now.toISOString().replace(/[-:.TZ]/g, '');
-            const lat = location && Number.isFinite(location.latitude)
-                ? location.latitude.toFixed(5).replace('-', 'm').replace('.', 'p')
-                : 'na';
-            const lon = location && Number.isFinite(location.longitude)
-                ? location.longitude.toFixed(5).replace('-', 'm').replace('.', 'p')
-                : 'na';
-            const rand = Math.random().toString(36).slice(2, 8);
-            return `obs_${ts}_${lat}_${lon}_${rand}`;
+        // ID = UTC timestamp (ms) + 12 random base-36 chars. Deliberately carries
+        // no coordinates: IDs appear in public URLs and image filenames, so
+        // location must live only in the card metadata.
+        function makeObservationId() {
+            const ts = new Date().toISOString().replace(/[-:.TZ]/g, '');
+            const bytes = crypto.getRandomValues(new Uint8Array(12));
+            const rand = Array.from(bytes, b => (b % 36).toString(36)).join('');
+            return `obs_${ts}_${rand}`;
         }
 
         function getUploadUrl() {
@@ -4290,7 +4348,7 @@
                 canopy_cover: card.canopy_cover ?? null,
                 ratio: card.ratio ?? null,
                 comments: card.comments || null,
-                keywords: card.keywords || '',
+                tags: card.tags || '',
                 soil_moisture: card.soil_moisture != null ? moistureShortLabel(card.soil_moisture) : null,
                 crop: card.crop || null,
                 bbch: card.bbch != null ? (bbchLabels[card.bbch] || card.bbch) : null,
@@ -4428,6 +4486,7 @@
         // ── APP INIT (only called after T&C accepted) ─────────────────────────
         function startApp() {
             initDB().then(async () => {
+                await upgradeStoredCardsToTags();
                 captures = await getAllCaptures();
                 renderGallery();
             }).catch(error => {
