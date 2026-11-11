@@ -1765,7 +1765,7 @@
                         </div>
 
                             <div class="info-heading">Upload settings</div>
-                            <p class="info-text">Uploading is optional. Set a server, username and token here if you were invited to share your images.</p>
+                            <p class="info-text">Uploading is optional. Set a server and token here if you were invited to share your images.</p>
                             <button class="btn" style="flex:none;" onclick="openSettingsModal()">Open upload settings</button>
 
                             <div class="info-heading">About</div>
@@ -2138,9 +2138,6 @@
                 <button type="button" onclick="startQrScanner();closeSettingsModal();" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.55rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);font-family:'JetBrains Mono',monospace;font-size:0.8125rem;color:var(--text);cursor:pointer;width:100%;">📷 Scan QR code to configure</button>
                 <input id="uploadServerInput" type="text" inputmode="url" autocomplete="off" spellcheck="false"
                        placeholder="Server URL (e.g. https://api.example.com)"
-                       class="form-input">
-                <input id="uploadUsernameInput" type="text" inputmode="text" autocomplete="off" spellcheck="false"
-                       placeholder="Username"
                        class="form-input">
                 <input id="uploadUrlInput" type="text" inputmode="text" autocomplete="off" spellcheck="false"
                        placeholder="Token"
@@ -3351,10 +3348,8 @@
 
         // OPTIONAL UPLOAD (token only; app remains offline-first)
         const uploadTokenInput = document.getElementById('uploadUrlInput');
-        const uploadUsernameInput = document.getElementById('uploadUsernameInput');
         const uploadAllBtn = document.getElementById('uploadAllBtn');
         const UPLOAD_TOKEN_KEY    = 'canopeo-field_upload_token';
-        const UPLOAD_USERNAME_KEY  = 'canopeo-field_upload_username';
 
         // Restore saved server URL and token (if any)
         const uploadServerInput = document.getElementById('uploadServerInput');
@@ -3377,10 +3372,7 @@
             document.getElementById('settingsModal').classList.remove('active');
         }
 
-        // Restore saved username and token (if any)
-        if (uploadUsernameInput) {
-            uploadUsernameInput.value = localStorage.getItem(UPLOAD_USERNAME_KEY) || '';
-        }
+        // Restore the saved token (if any)
         if (uploadTokenInput) {
             uploadTokenInput.value = localStorage.getItem(UPLOAD_TOKEN_KEY) || '';
         }
@@ -3431,24 +3423,14 @@
         function updateUploadUI() {
             if (!uploadAllBtn) return;
             const serverVal   = (uploadServerInput && uploadServerInput.value || localStorage.getItem(UPLOAD_SERVER_KEY) || '').trim();
-            const usernameVal = (uploadUsernameInput && uploadUsernameInput.value || localStorage.getItem(UPLOAD_USERNAME_KEY) || '').trim();
             const tokenVal    = (uploadTokenInput && uploadTokenInput.value || localStorage.getItem(UPLOAD_TOKEN_KEY) || '').trim();
             const hasServer   = serverVal.length > 0;
             const pending     = pendingCaptures().length;
 
-            credentialsOk = hasServer && usernameVal && tokenVal;
+            credentialsOk = hasServer && tokenVal;
             uploadAllBtn.style.display = credentialsOk ? 'inline-flex' : 'none';
             uploadAllBtn.disabled = pending === 0;
             uploadBtnLabel.textContent = pending === 0 ? 'Upload' : `Upload (${pending})`;
-        }
-
-        if (uploadUsernameInput) {
-            uploadUsernameInput.addEventListener('input', () => {
-                const username = (uploadUsernameInput.value || '').trim();
-                if (username) localStorage.setItem(UPLOAD_USERNAME_KEY, username);
-                else localStorage.removeItem(UPLOAD_USERNAME_KEY);
-                updateUploadUI();
-            });
         }
 
         if (uploadTokenInput) {
@@ -3471,10 +3453,9 @@
                     return;
                 }
 
-                const username = (uploadUsernameInput?.value || '').trim();
                 const token = (uploadTokenInput?.value || '').trim();
-                if (!username || !token) {
-                    showToast('Enter both username and token before uploading', 'error');
+                if (!token) {
+                    showToast('Enter your token in Upload Settings', 'error');
                     return;
                 }
 
@@ -4353,7 +4334,6 @@
         }
 
         async function buildUploadPayload(card) {
-            const username = (uploadUsernameInput?.value || '').trim() || null;
             const token = (uploadTokenInput?.value || '').trim() || null;
             const cropKey = normalizeWheat((card.crop || '').trim().toLowerCase());
             const bbchLabels = BBCH_LABELS_CROP[cropKey] || BBCH_LABELS_GENERIC;
@@ -4370,7 +4350,6 @@
                 crop: card.crop || null,
                 bbch: card.bbch != null ? (bbchLabels[card.bbch] || card.bbch) : null,
                 crop_height: card.crop_height != null ? card.crop_height : null,
-                username: username,
                 token: token,
                 originalImage: await blobToBase64(card.originalBlob),
                 classifiedImage: card.classifiedBlob ? await blobToBase64(card.classifiedBlob) : null
@@ -4427,15 +4406,15 @@
 
         function applyQrData(raw) {
             stopQrScanner();
-            // Parse 'Server: ...', 'Username: ...', 'Token: ...' lines
+            // Parse the 'Server: ...' and 'Token: ...' lines. Older QR codes also
+            // carry a 'Username: ...' line; it is no longer needed and is ignored.
             function extract(label) {
                 const match = raw.match(new RegExp(label + '\\s*([^\\n\\r]+)', 'i'));
                 return match ? match[1].trim() : null;
             }
             const server = extract('Server:');
-            const user   = extract('Username:');
             const token  = extract('Token:');
-            if (!server && !user && !token) {
+            if (!server && !token) {
                 showToast('QR code not recognized — try the setup message instead', 'error');
                 return;
             }
@@ -4443,11 +4422,6 @@
                 localStorage.setItem(UPLOAD_SERVER_KEY, server);
                 const el = document.getElementById('uploadServerInput');
                 if (el) el.value = server;
-            }
-            if (user) {
-                localStorage.setItem(UPLOAD_USERNAME_KEY, user);
-                const el = document.getElementById('uploadUsernameInput');
-                if (el) el.value = user;
             }
             if (token) {
                 localStorage.setItem(UPLOAD_TOKEN_KEY, token);
@@ -4471,7 +4445,7 @@
 
         // Version of the app. Change it for every release: it is what installed
         // copies compare against to know a newer version is published.
-        const APP_VERSION = '2.10.1';
+        const APP_VERSION = '2.11.0';
 
         // Version of the Terms & Conditions. Changing it makes every user
         // accept the terms again, so it moves only when the terms change.
@@ -4526,6 +4500,23 @@
                 }
             });
         }
+
+        // ── TEXT FIELDS ───────────────────────────────────────────────────────
+        // Comments, tags and crop names end up in spreadsheets. A cell that
+        // starts with = + - or @ is treated as a formula by Excel and similar
+        // programs, so those characters are not accepted at the start of these
+        // fields (they are fine anywhere else in the text).
+        ['metaComments', 'editComments', 'tagInput', 'editTagInput', 'cropInput', 'editCropInput'].forEach((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('input', () => {
+                const cleaned = el.value.replace(/^\s*[=+\-@][\s=+\-@]*/, '');
+                if (cleaned !== el.value) {
+                    el.value = cleaned;
+                    showToast('Text cannot start with = + - or @', 'info');
+                }
+            });
+        });
 
         // ── APP UPDATES ───────────────────────────────────────────────────────
         // Starting the app online always loads the latest published page (see
