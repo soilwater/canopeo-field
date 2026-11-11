@@ -8,7 +8,11 @@
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "orientation": "portrait",
-  "categories": ["productivity", "agriculture", "utilities"],
+  "categories": [
+    "productivity",
+    "agriculture",
+    "utilities"
+  ],
   "lang": "en-US",
   "icons": [
     {
@@ -28,6 +32,12 @@
       "purpose": "any"
     },
     {
+      "src": "icons/icon_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "icons/icon_256.png",
       "sizes": "256x256",
       "type": "image/png",
@@ -37,7 +47,19 @@
       "src": "icons/icon_512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable any"
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon_maskable_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon_maskable_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -46,7 +68,12 @@
       "short_name": "Capture",
       "description": "Take a new canopy photo",
       "url": "/canopeo-field/",
-      "icons": [{ "src": "icons/icon_128.png", "sizes": "128x128" }]
+      "icons": [
+        {
+          "src": "icons/icon_128.png",
+          "sizes": "128x128"
+        }
+      ]
     }
   ]
 }
